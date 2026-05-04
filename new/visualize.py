@@ -703,6 +703,7 @@ _LIVE_HTML_TEMPLATE = """<!DOCTYPE html>
       background: #0f0f0f; border-radius: 4px;
       image-rendering: pixelated; image-rendering: crisp-edges;
       display: block;
+      cursor: crosshair;
     }}
     #sample-status {{
       display: flex; justify-content: space-between; align-items: center;
@@ -712,7 +713,7 @@ _LIVE_HTML_TEMPLATE = """<!DOCTYPE html>
     #sample-status .pred-bad   {{ color: #f0a070; font-weight: 600; }}
     #class-bars {{ margin-top: 8px; }}
     .cb-row {{
-      display: grid; grid-template-columns: 18px 1fr 28px;
+      display: grid; grid-template-columns: 18px 1fr 36px;
       gap: 4px; align-items: center;
       font-size: 11px; line-height: 1.5;
     }}
@@ -971,6 +972,8 @@ _LIVE_HTML_TEMPLATE = """<!DOCTYPE html>
 
     let curT = 0, playing = false, playerHandle = null, stepMs = 200;
 
+    const HIGHLIGHT_BORDER = "#f0d870";
+
     function applyFrame(t) {{
       if (T_FRAMES <= 0) return;
       t = Math.max(0, Math.min(T_FRAMES - 1, t));
@@ -978,10 +981,22 @@ _LIVE_HTML_TEMPLATE = """<!DOCTYPE html>
       const extRow   = EXT_TRAJ[t];
       const nUpdates = [];
       for (let i = 0; i < stateRow.length; i++) {{
-        nUpdates.push({{ id: "N" + i, color: stateRow[i] ? NODE_ON : NODE_OFF }});
+        nUpdates.push({{
+          id: "N" + i,
+          color: stateRow[i] ? NODE_ON : NODE_OFF,
+          borderWidth: 1.5,
+        }});
       }}
       for (let k = 0; k < extRow.length; k++) {{
-        nUpdates.push({{ id: "I" + k, color: extRow[k] ? INPUT_ON : INPUT_OFF }});
+        const base = extRow[k] ? INPUT_ON : INPUT_OFF;
+        const isHl = (k === highlightedInputIdx);
+        nUpdates.push({{
+          id: "I" + k,
+          color: isHl
+            ? {{ background: base.background, border: HIGHLIGHT_BORDER }}
+            : base,
+          borderWidth: isHl ? 3.5 : 1.5,
+        }});
       }}
       data.nodes.update(nUpdates);
       const eUpdates = [];
@@ -1040,11 +1055,25 @@ _LIVE_HTML_TEMPLATE = """<!DOCTYPE html>
     offCanvas.width = 28; offCanvas.height = 28;
     const offCtx = offCanvas.getContext("2d");
 
+    // Side length of the input grid (28 for MNIST). If n_inputs isn't a
+    // perfect square the click-linking falls back to disabled.
+    const INPUT_SIDE = Math.round(Math.sqrt(N_INPUTS));
+    const INPUT_GRID_OK = (INPUT_SIDE * INPUT_SIDE === N_INPUTS);
+
+    let currentImage = null;
+    let highlightedInputIdx = -1;       // -1 = no highlight
+
     function drawDigit(image28x28) {{
+      currentImage = image28x28;
+      redrawDigit();
+    }}
+
+    function redrawDigit() {{
+      if (!currentImage) return;
       const im = offCtx.createImageData(28, 28);
       for (let r = 0; r < 28; r++) {{
         for (let c = 0; c < 28; c++) {{
-          const v = image28x28[r][c] ? 230 : 16;
+          const v = currentImage[r][c] ? 230 : 16;
           const i = (r * 28 + c) * 4;
           im.data[i] = im.data[i + 1] = im.data[i + 2] = v;
           im.data[i + 3] = 255;
@@ -1053,21 +1082,63 @@ _LIVE_HTML_TEMPLATE = """<!DOCTYPE html>
       offCtx.putImageData(im, 0, 0);
       digitCtx.clearRect(0, 0, digitCanvas.width, digitCanvas.height);
       digitCtx.drawImage(offCanvas, 0, 0, digitCanvas.width, digitCanvas.height);
+
+      if (highlightedInputIdx >= 0 && INPUT_GRID_OK) {{
+        const row = Math.floor(highlightedInputIdx / INPUT_SIDE);
+        const col = highlightedInputIdx % INPUT_SIDE;
+        const px = digitCanvas.width / INPUT_SIDE;
+        const py = digitCanvas.height / INPUT_SIDE;
+        digitCtx.strokeStyle = "#f0d870";
+        digitCtx.lineWidth = 2;
+        digitCtx.strokeRect(col * px - 1, row * py - 1, px + 2, py + 2);
+      }}
     }}
+
+    function setHighlight(idx) {{
+      // Toggle off if clicking the same input again.
+      if (idx === highlightedInputIdx) idx = -1;
+      highlightedInputIdx = idx;
+      redrawDigit();
+      applyFrame(curT);   // refresh node styling so the ring appears/disappears
+    }}
+
+    digitCanvas.addEventListener("click", e => {{
+      if (!INPUT_GRID_OK) return;
+      const rect = digitCanvas.getBoundingClientRect();
+      const col = Math.floor(((e.clientX - rect.left) / rect.width) * INPUT_SIDE);
+      const row = Math.floor(((e.clientY - rect.top) / rect.height) * INPUT_SIDE);
+      if (col < 0 || col >= INPUT_SIDE || row < 0 || row >= INPUT_SIDE) return;
+      setHighlight(row * INPUT_SIDE + col);
+    }});
+
+    network.on("click", function(params) {{
+      if (params.nodes.length === 0) {{
+        setHighlight(-1);
+        return;
+      }}
+      const id = params.nodes[0];
+      if (id[0] === "I") {{
+        setHighlight(parseInt(id.slice(1), 10));
+      }} else {{
+        setHighlight(-1);
+      }}
+    }});
 
     function drawClassBars(counts, trueLabel, predLabel) {{
       const container = document.getElementById("class-bars");
-      const max = Math.max(1, ...counts);
+      // Normalize against the number of clock cycles (excluding t=0), so a
+      // fully-filled bar means "fired on every step".
+      const denom = Math.max(1, T_FRAMES - 1);
       let html = "";
       for (let c = 0; c < counts.length; c++) {{
-        const w = (counts[c] / max) * 100;
+        const w = Math.min(100, (counts[c] / denom) * 100);
         const cls = (c === predLabel ? " is-pred" : "")
                   + (c === trueLabel ? " is-true" : "");
         html +=
           `<div class="cb-row${{cls}}">`
           + `<span class="cb-label">${{c}}</span>`
           + `<span class="cb-track"><span class="cb-fill" style="width:${{w}}%"></span></span>`
-          + `<span class="cb-count">${{counts[c]}}</span>`
+          + `<span class="cb-count">${{counts[c]}}/${{denom}}</span>`
           + `</div>`;
       }}
       container.innerHTML = html;
