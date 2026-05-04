@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Random circuit (seed=0, batch_id=0)</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      background: #191919;
+      color: #d8dadc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #network { width: 100vw; height: 100vh; }
+    #header {
+      position: fixed; top: 12px; left: 12px;
+      background: rgba(40, 40, 40, 0.85);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      z-index: 100;
+    }
+    #header b { color: #fff; font-size: 13px; }
+    .vis-tooltip {
+      background: #2a2a2a !important;
+      color: #ddd !important;
+      border: 1px solid #444 !important;
+      border-radius: 4px !important;
+      font-family: inherit !important;
+      font-size: 12px !important;
+      white-space: pre !important;
+      padding: 6px 10px !important;
+    }
+    #controls {
+      position: fixed; top: 12px; right: 12px;
+      width: 240px;
+      background: rgba(40, 40, 40, 0.92);
+      border-radius: 6px;
+      padding: 10px 12px 12px;
+      font-size: 12px;
+      backdrop-filter: blur(6px);
+      user-select: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      z-index: 100;
+      pointer-events: auto;
+    }
+    #controls .ctrl-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 600; color: #fff; font-size: 13px;
+      margin-bottom: 6px;
+    }
+    #controls button.ctrl-icon {
+      background: transparent; color: #ddd; border: none;
+      font-size: 16px; line-height: 1; cursor: pointer; padding: 0 4px;
+    }
+    #controls.collapsed #ctrl-body { display: none; }
+    #controls .ctrl-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2px 8px;
+      align-items: center;
+      margin: 8px 0 2px;
+    }
+    #controls .ctrl-row .ctrl-label { color: #c0c0c0; }
+    #controls .ctrl-row .ctrl-value {
+      color: #8a8a8a; font-size: 11px; font-variant-numeric: tabular-nums;
+    }
+    #controls input[type=range] {
+      grid-column: 1 / span 2;
+      width: 100%;
+      accent-color: #7c93b7;
+      background: transparent;
+      margin: 2px 0 0;
+    }
+    #controls .ctrl-buttons {
+      display: flex; gap: 6px; margin-top: 12px;
+    }
+    #controls button.ctrl-btn {
+      flex: 1;
+      background: #2f2f2f; color: #ddd;
+      border: 1px solid #444; border-radius: 4px;
+      padding: 4px 8px; cursor: pointer; font-size: 11px;
+      font-family: inherit;
+    }
+    #controls button.ctrl-btn:hover { background: #3a3a3a; }
+    #playback {
+      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+      background: rgba(40, 40, 40, 0.92);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 12px;
+      display: flex; align-items: center; gap: 12px;
+      backdrop-filter: blur(6px);
+      user-select: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      z-index: 100;
+      width: min(640px, 92vw);
+    }
+    #playback button.pb-btn {
+      background: #2f2f2f; color: #ddd;
+      border: 1px solid #444; border-radius: 4px;
+      padding: 4px 12px; cursor: pointer; font-size: 11px;
+      font-family: inherit;
+      min-width: 56px;
+    }
+    #playback button.pb-btn:hover { background: #3a3a3a; }
+    #playback input[type=range] {
+      flex: 1;
+      accent-color: #9fd2ff;
+      background: transparent;
+      margin: 0;
+    }
+    #playback #playback-speed { flex: 0 0 110px; accent-color: #f0d870; }
+    #playback .pb-time {
+      color: #c0c0c0; font-variant-numeric: tabular-nums;
+      min-width: 84px; text-align: center;
+    }
+    #playback .pb-sep { color: #555; }
+    #playback .pb-label { color: #888; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <b>Random circuit (seed=0, batch_id=0)</b><br />
+    batch 0/1 &middot; 8 inputs &middot; 64 nodes &middot; 1152 genome bits &middot; sel_bits=7 &middot; T=32
+  </div>
+  <div id="controls">
+    <div class="ctrl-header">
+      <span>Forces</span>
+      <button class="ctrl-icon" id="ctrl-toggle" title="Collapse">&minus;</button>
+    </div>
+    <div id="ctrl-body">
+      <div class="ctrl-row">
+        <span class="ctrl-label">Center force</span>
+        <span class="ctrl-value" id="val-centralGravity">0.01</span>
+        <input type="range" min="0" max="1" step="0.01" value="0.01"
+               data-param="centralGravity" data-mul="1" data-precision="2" />
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Repel force</span>
+        <span class="ctrl-value" id="val-gravitationalConstant">55</span>
+        <input type="range" min="0" max="300" step="1" value="55"
+               data-param="gravitationalConstant" data-mul="-1" data-precision="0" />
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Link force</span>
+        <span class="ctrl-value" id="val-springConstant">0.080</span>
+        <input type="range" min="0" max="0.5" step="0.005" value="0.08"
+               data-param="springConstant" data-mul="1" data-precision="3" />
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Link distance</span>
+        <span class="ctrl-value" id="val-springLength">110</span>
+        <input type="range" min="10" max="500" step="5" value="110"
+               data-param="springLength" data-mul="1" data-precision="0" />
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Damping</span>
+        <span class="ctrl-value" id="val-damping">0.50</span>
+        <input type="range" min="0" max="1" step="0.05" value="0.5"
+               data-param="damping" data-mul="1" data-precision="2" />
+      </div>
+      <div class="ctrl-buttons">
+        <button class="ctrl-btn" id="ctrl-pause">Pause</button>
+        <button class="ctrl-btn" id="ctrl-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+  <div id="network"></div>
+  <div id="playback">
+    <button class="pb-btn" id="playback-play">Play</button>
+    <input type="range" id="playback-scrub" min="0" max="32" value="0" step="1" />
+    <span class="pb-time" id="playback-time">t = 0 / 32</span>
+    <span class="pb-sep">|</span>
+    <span class="pb-label">Speed</span>
+    <input type="range" id="playback-speed" min="50" max="2000" step="50" value="200" />
+    <span class="pb-time" id="playback-speed-val">200ms</span>
+  </div>
+  <script>
+    const NODES = [
+  {
+    "id": "I0",
+    "label": "I0",
+    "title": "External input 0",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 0
+  },
+  {
+    "id": "I1",
+    "label": "I1",
+    "title": "External input 1",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "I2",
+    "label": "I2",
+    "title": "External input 2",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 0
+  },
+  {
+    "id": "I3",
+    "label": "I3",
+    "title": "External input 3",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 0
+  },
+  {
+    "id": "I4",
+    "label": "I4",
+    "title": "External input 4",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "I5",
+    "label": "I5",
+    "title": "External input 5",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "I6",
+    "label": "I6",
+    "title": "External input 6",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "I7",
+    "label": "I7",
+    "title": "External input 7",
+    "color": {
+      "background": "#4a4d50",
+      "border": "#33343a"
+    },
+    "shape": "dot",
+    "value": 1
+  },
+  {
+    "id": "N0",
+    "label": "N0",
+    "title": "N0 \u2014 COPY_A\nA \u2190 N55\nB \u2190 N47",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N1",
+    "label": "N1",
+    "title": "N1 \u2014 CUSTOM\nA \u2190 I5\nB \u2190 N2",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N2",
+    "label": "N2",
+    "title": "N2 \u2014 NOT_A\nA \u2190 N0\nB \u2190 N11",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N3",
+    "label": "N3",
+    "title": "N3 \u2014 XNOR\nA \u2190 N51\nB \u2190 N32",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N4",
+    "label": "N4",
+    "title": "N4 \u2014 CONST_1\nA \u2190 N36\nB \u2190 N58",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N5",
+    "label": "N5",
+    "title": "N5 \u2014 OR\nA \u2190 N4\nB \u2190 N13",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N6",
+    "label": "N6",
+    "title": "N6 \u2014 CUSTOM\nA \u2190 N22\nB \u2190 N54",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N7",
+    "label": "N7",
+    "title": "N7 \u2014 CUSTOM\nA \u2190 N10\nB \u2190 N31",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N8",
+    "label": "N8",
+    "title": "N8 \u2014 AND\nA \u2190 N22\nB \u2190 N31",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N9",
+    "label": "N9",
+    "title": "N9 \u2014 NOT_A\nA \u2190 N0\nB \u2190 N26",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "N10",
+    "label": "N10",
+    "title": "N10 \u2014 CUSTOM\nA \u2190 N47\nB \u2190 N18",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N11",
+    "label": "N11",
+    "title": "N11 \u2014 AND\nA \u2190 N44\nB \u2190 N42",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N12",
+    "label": "N12",
+    "title": "N12 \u2014 COPY_B\nA \u2190 N2\nB \u2190 N19",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N13",
+    "label": "N13",
+    "title": "N13 \u2014 XNOR\nA \u2190 N40\nB \u2190 I6",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 6
+  },
+  {
+    "id": "N14",
+    "label": "N14",
+    "title": "N14 \u2014 XOR\nA \u2190 N13\nB \u2190 N5",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "N15",
+    "label": "N15",
+    "title": "N15 \u2014 NOR\nA \u2190 N21\nB \u2190 I5",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 6
+  },
+  {
+    "id": "N16",
+    "label": "N16",
+    "title": "N16 \u2014 CONST_1\nA \u2190 N41\nB \u2190 N45",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N17",
+    "label": "N17",
+    "title": "N17 \u2014 CUSTOM\nA \u2190 N23\nB \u2190 N29",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N18",
+    "label": "N18",
+    "title": "N18 \u2014 XOR\nA \u2190 N51\nB \u2190 N17",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N19",
+    "label": "N19",
+    "title": "N19 \u2014 NOR\nA \u2190 N28\nB \u2190 N44",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N20",
+    "label": "N20",
+    "title": "N20 \u2014 CUSTOM\nA \u2190 N58\nB \u2190 N7",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N21",
+    "label": "N21",
+    "title": "N21 \u2014 NOT_B\nA \u2190 N37\nB \u2190 N34",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 7
+  },
+  {
+    "id": "N22",
+    "label": "N22",
+    "title": "N22 \u2014 CUSTOM\nA \u2190 N27\nB \u2190 N1",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N23",
+    "label": "N23",
+    "title": "N23 \u2014 NOT_B\nA \u2190 N41\nB \u2190 N12",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N24",
+    "label": "N24",
+    "title": "N24 \u2014 AND\nA \u2190 N56\nB \u2190 N15",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N25",
+    "label": "N25",
+    "title": "N25 \u2014 COPY_A\nA \u2190 N63\nB \u2190 N38",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N26",
+    "label": "N26",
+    "title": "N26 \u2014 CONST_1\nA \u2190 N41\nB \u2190 N20",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N27",
+    "label": "N27",
+    "title": "N27 \u2014 CUSTOM\nA \u2190 N30\nB \u2190 I4",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 6
+  },
+  {
+    "id": "N28",
+    "label": "N28",
+    "title": "N28 \u2014 CONST_0\nA \u2190 N46\nB \u2190 N42",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N29",
+    "label": "N29",
+    "title": "N29 \u2014 XNOR\nA \u2190 N28\nB \u2190 N6",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N30",
+    "label": "N30",
+    "title": "N30 \u2014 CUSTOM\nA \u2190 N33\nB \u2190 N21",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N31",
+    "label": "N31",
+    "title": "N31 \u2014 AND\nA \u2190 N53\nB \u2190 N46",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N32",
+    "label": "N32",
+    "title": "N32 \u2014 COPY_B\nA \u2190 N39\nB \u2190 N28",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N33",
+    "label": "N33",
+    "title": "N33 \u2014 XNOR\nA \u2190 N8\nB \u2190 N44",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N34",
+    "label": "N34",
+    "title": "N34 \u2014 CUSTOM\nA \u2190 I5\nB \u2190 N13",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N35",
+    "label": "N35",
+    "title": "N35 \u2014 CONST_1\nA \u2190 N60\nB \u2190 N37",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "N36",
+    "label": "N36",
+    "title": "N36 \u2014 NAND\nA \u2190 I1\nB \u2190 N4",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N37",
+    "label": "N37",
+    "title": "N37 \u2014 CONST_0\nA \u2190 N25\nB \u2190 N19",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N38",
+    "label": "N38",
+    "title": "N38 \u2014 NAND\nA \u2190 N43\nB \u2190 N4",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N39",
+    "label": "N39",
+    "title": "N39 \u2014 OR\nA \u2190 N60\nB \u2190 N32",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N40",
+    "label": "N40",
+    "title": "N40 \u2014 NAND\nA \u2190 N50\nB \u2190 N48",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N41",
+    "label": "N41",
+    "title": "N41 \u2014 CONST_0\nA \u2190 N15\nB \u2190 N3",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 6
+  },
+  {
+    "id": "N42",
+    "label": "N42",
+    "title": "N42 \u2014 CUSTOM\nA \u2190 N27\nB \u2190 N15",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N43",
+    "label": "N43",
+    "title": "N43 \u2014 OR\nA \u2190 N17\nB \u2190 I6",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N44",
+    "label": "N44",
+    "title": "N44 \u2014 NOT_B\nA \u2190 N59\nB \u2190 N7",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N45",
+    "label": "N45",
+    "title": "N45 \u2014 NAND\nA \u2190 N5\nB \u2190 I7",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N46",
+    "label": "N46",
+    "title": "N46 \u2014 COPY_A\nA \u2190 N26\nB \u2190 N25",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 6
+  },
+  {
+    "id": "N47",
+    "label": "N47",
+    "title": "N47 \u2014 XNOR\nA \u2190 N24\nB \u2190 N0",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N48",
+    "label": "N48",
+    "title": "N48 \u2014 OR\nA \u2190 N52\nB \u2190 N1",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N49",
+    "label": "N49",
+    "title": "N49 \u2014 AND\nA \u2190 N30\nB \u2190 N21",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "N50",
+    "label": "N50",
+    "title": "N50 \u2014 CUSTOM\nA \u2190 N34\nB \u2190 N59",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N51",
+    "label": "N51",
+    "title": "N51 \u2014 OR\nA \u2190 N63\nB \u2190 N13",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N52",
+    "label": "N52",
+    "title": "N52 \u2014 CUSTOM\nA \u2190 N23\nB \u2190 N27",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N53",
+    "label": "N53",
+    "title": "N53 \u2014 NOT_B\nA \u2190 N7\nB \u2190 N21",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N54",
+    "label": "N54",
+    "title": "N54 \u2014 CONST_0\nA \u2190 N58\nB \u2190 N45",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N55",
+    "label": "N55",
+    "title": "N55 \u2014 NOT_B\nA \u2190 N51\nB \u2190 N41",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N56",
+    "label": "N56",
+    "title": "N56 \u2014 NOR\nA \u2190 N46\nB \u2190 I6",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 3
+  },
+  {
+    "id": "N57",
+    "label": "N57",
+    "title": "N57 \u2014 AND\nA \u2190 N16\nB \u2190 N29",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "N58",
+    "label": "N58",
+    "title": "N58 \u2014 NAND\nA \u2190 I1\nB \u2190 N53",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 5
+  },
+  {
+    "id": "N59",
+    "label": "N59",
+    "title": "N59 \u2014 XOR\nA \u2190 N22\nB \u2190 I4",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N60",
+    "label": "N60",
+    "title": "N60 \u2014 COPY_B\nA \u2190 N21\nB \u2190 N2",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  },
+  {
+    "id": "N61",
+    "label": "N61",
+    "title": "N61 \u2014 AND\nA \u2190 N27\nB \u2190 N31",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "N62",
+    "label": "N62",
+    "title": "N62 \u2014 CUSTOM\nA \u2190 N45\nB \u2190 N39",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 2
+  },
+  {
+    "id": "N63",
+    "label": "N63",
+    "title": "N63 \u2014 NOT_A\nA \u2190 N15\nB \u2190 N46",
+    "color": {
+      "background": "#3d4a5c",
+      "border": "#2a3343"
+    },
+    "shape": "dot",
+    "value": 4
+  }
+];
+    const EDGES = [
+  {
+    "id": "e0",
+    "from": "N55",
+    "to": "N0",
+    "title": "N55 \u2192 N0  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e1",
+    "from": "N47",
+    "to": "N0",
+    "title": "N47 \u2192 N0  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e2",
+    "from": "I5",
+    "to": "N1",
+    "title": "I5 \u2192 N1  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e3",
+    "from": "N2",
+    "to": "N1",
+    "title": "N2 \u2192 N1  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e4",
+    "from": "N0",
+    "to": "N2",
+    "title": "N0 \u2192 N2  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e5",
+    "from": "N11",
+    "to": "N2",
+    "title": "N11 \u2192 N2  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e6",
+    "from": "N51",
+    "to": "N3",
+    "title": "N51 \u2192 N3  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e7",
+    "from": "N32",
+    "to": "N3",
+    "title": "N32 \u2192 N3  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e8",
+    "from": "N36",
+    "to": "N4",
+    "title": "N36 \u2192 N4  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e9",
+    "from": "N58",
+    "to": "N4",
+    "title": "N58 \u2192 N4  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e10",
+    "from": "N4",
+    "to": "N5",
+    "title": "N4 \u2192 N5  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e11",
+    "from": "N13",
+    "to": "N5",
+    "title": "N13 \u2192 N5  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e12",
+    "from": "N22",
+    "to": "N6",
+    "title": "N22 \u2192 N6  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e13",
+    "from": "N54",
+    "to": "N6",
+    "title": "N54 \u2192 N6  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e14",
+    "from": "N10",
+    "to": "N7",
+    "title": "N10 \u2192 N7  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e15",
+    "from": "N31",
+    "to": "N7",
+    "title": "N31 \u2192 N7  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e16",
+    "from": "N22",
+    "to": "N8",
+    "title": "N22 \u2192 N8  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e17",
+    "from": "N31",
+    "to": "N8",
+    "title": "N31 \u2192 N8  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e18",
+    "from": "N0",
+    "to": "N9",
+    "title": "N0 \u2192 N9  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e19",
+    "from": "N26",
+    "to": "N9",
+    "title": "N26 \u2192 N9  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e20",
+    "from": "N47",
+    "to": "N10",
+    "title": "N47 \u2192 N10  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e21",
+    "from": "N18",
+    "to": "N10",
+    "title": "N18 \u2192 N10  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e22",
+    "from": "N44",
+    "to": "N11",
+    "title": "N44 \u2192 N11  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e23",
+    "from": "N42",
+    "to": "N11",
+    "title": "N42 \u2192 N11  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e24",
+    "from": "N2",
+    "to": "N12",
+    "title": "N2 \u2192 N12  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e25",
+    "from": "N19",
+    "to": "N12",
+    "title": "N19 \u2192 N12  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e26",
+    "from": "N40",
+    "to": "N13",
+    "title": "N40 \u2192 N13  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e27",
+    "from": "I6",
+    "to": "N13",
+    "title": "I6 \u2192 N13  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e28",
+    "from": "N13",
+    "to": "N14",
+    "title": "N13 \u2192 N14  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e29",
+    "from": "N5",
+    "to": "N14",
+    "title": "N5 \u2192 N14  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e30",
+    "from": "N21",
+    "to": "N15",
+    "title": "N21 \u2192 N15  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e31",
+    "from": "I5",
+    "to": "N15",
+    "title": "I5 \u2192 N15  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e32",
+    "from": "N41",
+    "to": "N16",
+    "title": "N41 \u2192 N16  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e33",
+    "from": "N45",
+    "to": "N16",
+    "title": "N45 \u2192 N16  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e34",
+    "from": "N23",
+    "to": "N17",
+    "title": "N23 \u2192 N17  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e35",
+    "from": "N29",
+    "to": "N17",
+    "title": "N29 \u2192 N17  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e36",
+    "from": "N51",
+    "to": "N18",
+    "title": "N51 \u2192 N18  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e37",
+    "from": "N17",
+    "to": "N18",
+    "title": "N17 \u2192 N18  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e38",
+    "from": "N28",
+    "to": "N19",
+    "title": "N28 \u2192 N19  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e39",
+    "from": "N44",
+    "to": "N19",
+    "title": "N44 \u2192 N19  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e40",
+    "from": "N58",
+    "to": "N20",
+    "title": "N58 \u2192 N20  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e41",
+    "from": "N7",
+    "to": "N20",
+    "title": "N7 \u2192 N20  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e42",
+    "from": "N37",
+    "to": "N21",
+    "title": "N37 \u2192 N21  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e43",
+    "from": "N34",
+    "to": "N21",
+    "title": "N34 \u2192 N21  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e44",
+    "from": "N27",
+    "to": "N22",
+    "title": "N27 \u2192 N22  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e45",
+    "from": "N1",
+    "to": "N22",
+    "title": "N1 \u2192 N22  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e46",
+    "from": "N41",
+    "to": "N23",
+    "title": "N41 \u2192 N23  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e47",
+    "from": "N12",
+    "to": "N23",
+    "title": "N12 \u2192 N23  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e48",
+    "from": "N56",
+    "to": "N24",
+    "title": "N56 \u2192 N24  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e49",
+    "from": "N15",
+    "to": "N24",
+    "title": "N15 \u2192 N24  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e50",
+    "from": "N63",
+    "to": "N25",
+    "title": "N63 \u2192 N25  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e51",
+    "from": "N38",
+    "to": "N25",
+    "title": "N38 \u2192 N25  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e52",
+    "from": "N41",
+    "to": "N26",
+    "title": "N41 \u2192 N26  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e53",
+    "from": "N20",
+    "to": "N26",
+    "title": "N20 \u2192 N26  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e54",
+    "from": "N30",
+    "to": "N27",
+    "title": "N30 \u2192 N27  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e55",
+    "from": "I4",
+    "to": "N27",
+    "title": "I4 \u2192 N27  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e56",
+    "from": "N46",
+    "to": "N28",
+    "title": "N46 \u2192 N28  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e57",
+    "from": "N42",
+    "to": "N28",
+    "title": "N42 \u2192 N28  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e58",
+    "from": "N28",
+    "to": "N29",
+    "title": "N28 \u2192 N29  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e59",
+    "from": "N6",
+    "to": "N29",
+    "title": "N6 \u2192 N29  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e60",
+    "from": "N33",
+    "to": "N30",
+    "title": "N33 \u2192 N30  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e61",
+    "from": "N21",
+    "to": "N30",
+    "title": "N21 \u2192 N30  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e62",
+    "from": "N53",
+    "to": "N31",
+    "title": "N53 \u2192 N31  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e63",
+    "from": "N46",
+    "to": "N31",
+    "title": "N46 \u2192 N31  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e64",
+    "from": "N39",
+    "to": "N32",
+    "title": "N39 \u2192 N32  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e65",
+    "from": "N28",
+    "to": "N32",
+    "title": "N28 \u2192 N32  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e66",
+    "from": "N8",
+    "to": "N33",
+    "title": "N8 \u2192 N33  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e67",
+    "from": "N44",
+    "to": "N33",
+    "title": "N44 \u2192 N33  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e68",
+    "from": "I5",
+    "to": "N34",
+    "title": "I5 \u2192 N34  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e69",
+    "from": "N13",
+    "to": "N34",
+    "title": "N13 \u2192 N34  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e70",
+    "from": "N60",
+    "to": "N35",
+    "title": "N60 \u2192 N35  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e71",
+    "from": "N37",
+    "to": "N35",
+    "title": "N37 \u2192 N35  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e72",
+    "from": "I1",
+    "to": "N36",
+    "title": "I1 \u2192 N36  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e73",
+    "from": "N4",
+    "to": "N36",
+    "title": "N4 \u2192 N36  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e74",
+    "from": "N25",
+    "to": "N37",
+    "title": "N25 \u2192 N37  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e75",
+    "from": "N19",
+    "to": "N37",
+    "title": "N19 \u2192 N37  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e76",
+    "from": "N43",
+    "to": "N38",
+    "title": "N43 \u2192 N38  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e77",
+    "from": "N4",
+    "to": "N38",
+    "title": "N4 \u2192 N38  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e78",
+    "from": "N60",
+    "to": "N39",
+    "title": "N60 \u2192 N39  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e79",
+    "from": "N32",
+    "to": "N39",
+    "title": "N32 \u2192 N39  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e80",
+    "from": "N50",
+    "to": "N40",
+    "title": "N50 \u2192 N40  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e81",
+    "from": "N48",
+    "to": "N40",
+    "title": "N48 \u2192 N40  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e82",
+    "from": "N15",
+    "to": "N41",
+    "title": "N15 \u2192 N41  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e83",
+    "from": "N3",
+    "to": "N41",
+    "title": "N3 \u2192 N41  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e84",
+    "from": "N27",
+    "to": "N42",
+    "title": "N27 \u2192 N42  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e85",
+    "from": "N15",
+    "to": "N42",
+    "title": "N15 \u2192 N42  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e86",
+    "from": "N17",
+    "to": "N43",
+    "title": "N17 \u2192 N43  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e87",
+    "from": "I6",
+    "to": "N43",
+    "title": "I6 \u2192 N43  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e88",
+    "from": "N59",
+    "to": "N44",
+    "title": "N59 \u2192 N44  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e89",
+    "from": "N7",
+    "to": "N44",
+    "title": "N7 \u2192 N44  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e90",
+    "from": "N5",
+    "to": "N45",
+    "title": "N5 \u2192 N45  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e91",
+    "from": "I7",
+    "to": "N45",
+    "title": "I7 \u2192 N45  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e92",
+    "from": "N26",
+    "to": "N46",
+    "title": "N26 \u2192 N46  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e93",
+    "from": "N25",
+    "to": "N46",
+    "title": "N25 \u2192 N46  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e94",
+    "from": "N24",
+    "to": "N47",
+    "title": "N24 \u2192 N47  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e95",
+    "from": "N0",
+    "to": "N47",
+    "title": "N0 \u2192 N47  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e96",
+    "from": "N52",
+    "to": "N48",
+    "title": "N52 \u2192 N48  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e97",
+    "from": "N1",
+    "to": "N48",
+    "title": "N1 \u2192 N48  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e98",
+    "from": "N30",
+    "to": "N49",
+    "title": "N30 \u2192 N49  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e99",
+    "from": "N21",
+    "to": "N49",
+    "title": "N21 \u2192 N49  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e100",
+    "from": "N34",
+    "to": "N50",
+    "title": "N34 \u2192 N50  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e101",
+    "from": "N59",
+    "to": "N50",
+    "title": "N59 \u2192 N50  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e102",
+    "from": "N63",
+    "to": "N51",
+    "title": "N63 \u2192 N51  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e103",
+    "from": "N13",
+    "to": "N51",
+    "title": "N13 \u2192 N51  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e104",
+    "from": "N23",
+    "to": "N52",
+    "title": "N23 \u2192 N52  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e105",
+    "from": "N27",
+    "to": "N52",
+    "title": "N27 \u2192 N52  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e106",
+    "from": "N7",
+    "to": "N53",
+    "title": "N7 \u2192 N53  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e107",
+    "from": "N21",
+    "to": "N53",
+    "title": "N21 \u2192 N53  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e108",
+    "from": "N58",
+    "to": "N54",
+    "title": "N58 \u2192 N54  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e109",
+    "from": "N45",
+    "to": "N54",
+    "title": "N45 \u2192 N54  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e110",
+    "from": "N51",
+    "to": "N55",
+    "title": "N51 \u2192 N55  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e111",
+    "from": "N41",
+    "to": "N55",
+    "title": "N41 \u2192 N55  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e112",
+    "from": "N46",
+    "to": "N56",
+    "title": "N46 \u2192 N56  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e113",
+    "from": "I6",
+    "to": "N56",
+    "title": "I6 \u2192 N56  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e114",
+    "from": "N16",
+    "to": "N57",
+    "title": "N16 \u2192 N57  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e115",
+    "from": "N29",
+    "to": "N57",
+    "title": "N29 \u2192 N57  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e116",
+    "from": "I1",
+    "to": "N58",
+    "title": "I1 \u2192 N58  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e117",
+    "from": "N53",
+    "to": "N58",
+    "title": "N53 \u2192 N58  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e118",
+    "from": "N22",
+    "to": "N59",
+    "title": "N22 \u2192 N59  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e119",
+    "from": "I4",
+    "to": "N59",
+    "title": "I4 \u2192 N59  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e120",
+    "from": "N21",
+    "to": "N60",
+    "title": "N21 \u2192 N60  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e121",
+    "from": "N2",
+    "to": "N60",
+    "title": "N2 \u2192 N60  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e122",
+    "from": "N27",
+    "to": "N61",
+    "title": "N27 \u2192 N61  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e123",
+    "from": "N31",
+    "to": "N61",
+    "title": "N31 \u2192 N61  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e124",
+    "from": "N45",
+    "to": "N62",
+    "title": "N45 \u2192 N62  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e125",
+    "from": "N39",
+    "to": "N62",
+    "title": "N39 \u2192 N62  (port B)",
+    "port": "B"
+  },
+  {
+    "id": "e126",
+    "from": "N15",
+    "to": "N63",
+    "title": "N15 \u2192 N63  (port A)",
+    "port": "A"
+  },
+  {
+    "id": "e127",
+    "from": "N46",
+    "to": "N63",
+    "title": "N46 \u2192 N63  (port B)",
+    "port": "B"
+  }
+];
+
+    const data = {
+      nodes: new vis.DataSet(NODES),
+      edges: new vis.DataSet(EDGES),
+    };
+
+    const options = {
+      nodes: {
+        borderWidth: 1.5,
+        scaling: {
+          min: 10,
+          max: 32,
+          label: { enabled: false },
+        },
+        font: {
+          color: "#d8dadc",
+          size: 12,
+          face: "inherit",
+          strokeWidth: 0,
+          vadjust: -22,
+        },
+        shadow: { enabled: true, color: "rgba(0,0,0,0.55)", size: 6, x: 0, y: 0 },
+      },
+      edges: {
+        color: { color: "#3a3a3a", highlight: "#e8e8e8", hover: "#e8e8e8", opacity: 0.6 },
+        width: 1.0,
+        selectionWidth: 1.6,
+        hoverWidth: 1.6,
+        smooth: false,
+        arrows: {
+          to: { enabled: true, scaleFactor: 0.55, type: "arrow" }
+        },
+      },
+      physics: {
+        solver: "forceAtlas2Based",
+        forceAtlas2Based: {
+          gravitationalConstant: -55,
+          centralGravity: 0.01,
+          springLength: 110,
+          springConstant: 0.08,
+          damping: 0.5,
+          avoidOverlap: 0.6,
+        },
+        stabilization: { iterations: 600, fit: true },
+      },
+      interaction: {
+        hover: true,
+        dragNodes: true,
+        zoomView: true,
+        navigationButtons: false,
+        tooltipDelay: 120,
+      },
+    };
+
+    const network = new vis.Network(
+      document.getElementById("network"),
+      data,
+      options,
+    );
+
+    network.once("stabilizationIterationsDone", () => {
+      network.setOptions({ physics: { enabled: true } });
+    });
+
+    const physicsDefaults = {
+      centralGravity: 0.01,
+      gravitationalConstant: -55,
+      springLength: 110,
+      springConstant: 0.08,
+      damping: 0.5,
+    };
+
+    const controlsEl = document.getElementById("controls");
+    ["pointerdown", "mousedown", "touchstart", "wheel"].forEach(ev => {
+      controlsEl.addEventListener(ev, e => e.stopPropagation(), { passive: true });
+    });
+
+    const sliders = document.querySelectorAll("#controls input[type=range]");
+    sliders.forEach(slider => {
+      slider.addEventListener("input", () => {
+        const param = slider.dataset.param;
+        const mul = parseFloat(slider.dataset.mul);
+        const precision = parseInt(slider.dataset.precision, 10);
+        const display = parseFloat(slider.value);
+        const real = display * mul;
+        const valEl = document.getElementById("val-" + param);
+        if (valEl) valEl.textContent = display.toFixed(precision);
+        network.setOptions({
+          physics: { forceAtlas2Based: { [param]: real } }
+        });
+      });
+    });
+
+    let physicsOn = true;
+    const pauseBtn = document.getElementById("ctrl-pause");
+    pauseBtn.addEventListener("click", () => {
+      physicsOn = !physicsOn;
+      network.setOptions({ physics: { enabled: physicsOn } });
+      pauseBtn.textContent = physicsOn ? "Pause" : "Resume";
+    });
+
+    document.getElementById("ctrl-reset").addEventListener("click", () => {
+      sliders.forEach(slider => {
+        const param = slider.dataset.param;
+        const mul = parseFloat(slider.dataset.mul);
+        const def = physicsDefaults[param];
+        slider.value = def / mul;
+        slider.dispatchEvent(new Event("input"));
+      });
+    });
+
+    const toggleBtn = document.getElementById("ctrl-toggle");
+    toggleBtn.addEventListener("click", () => {
+      const ctrl = document.getElementById("controls");
+      ctrl.classList.toggle("collapsed");
+      toggleBtn.innerHTML = ctrl.classList.contains("collapsed") ? "+" : "&minus;";
+    });
+
+    // ── activity playback ────────────────────────────────────────────
+    const STATE_TRAJ = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1], [1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0], [1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1], [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0], [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0], [1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0], [1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0], [1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0], [1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0], [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0]];   // (T+1) x n_nodes
+    const EXT_TRAJ   = [[1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 1, 0, 0, 0]];     // (T+1) x n_inputs
+    const T_FRAMES   = STATE_TRAJ.length;
+
+    const NODE_OFF  = { background: "#3d4a5c", border: "#2a3343" };
+    const NODE_ON   = { background: "#9fd2ff",  border: "#7fb8e8"  };
+    const INPUT_OFF = { background: "#4a4d50", border: "#33343a" };
+    const INPUT_ON  = { background: "#f0d870",  border: "#c9b04a"  };
+    const EDGE_OFF  = "#3a3a3a";
+    const EDGE_ON   = "#e8e8e8";
+
+    let curT = 0;
+    let playing = false;
+    let playerHandle = null;
+    let stepMs = 200;
+
+    function applyFrame(t) {
+      const stateRow = STATE_TRAJ[t];
+      const extRow   = EXT_TRAJ[t];
+
+      const nUpdates = [];
+      for (let i = 0; i < stateRow.length; i++) {
+        nUpdates.push({ id: "N" + i, color: stateRow[i] ? NODE_ON : NODE_OFF });
+      }
+      for (let k = 0; k < extRow.length; k++) {
+        nUpdates.push({ id: "I" + k, color: extRow[k] ? INPUT_ON : INPUT_OFF });
+      }
+      data.nodes.update(nUpdates);
+
+      const eUpdates = [];
+      const allEdges = data.edges.get();
+      for (const e of allEdges) {
+        const from = e.from;
+        const live = (from[0] === "I")
+          ? (extRow[parseInt(from.slice(1), 10)] | 0)
+          : (stateRow[parseInt(from.slice(1), 10)] | 0);
+        eUpdates.push({
+          id: e.id,
+          color: {
+            color: live ? EDGE_ON : EDGE_OFF,
+            opacity: live ? 0.95 : 0.35,
+          },
+          width: live ? 1.8 : 1.0,
+        });
+      }
+      data.edges.update(eUpdates);
+
+      const tEl = document.getElementById("playback-time");
+      if (tEl) tEl.textContent = `t = ${t} / ${T_FRAMES - 1}`;
+      const scrub = document.getElementById("playback-scrub");
+      if (scrub && parseInt(scrub.value, 10) !== t) scrub.value = t;
+    }
+
+    function startPlay() {
+      if (T_FRAMES <= 1) return;
+      if (playerHandle) clearInterval(playerHandle);
+      playing = true;
+      playerHandle = setInterval(() => {
+        curT = (curT + 1) % T_FRAMES;
+        applyFrame(curT);
+      }, stepMs);
+      document.getElementById("playback-play").textContent = "Pause";
+    }
+
+    function stopPlay() {
+      playing = false;
+      if (playerHandle) { clearInterval(playerHandle); playerHandle = null; }
+      document.getElementById("playback-play").textContent = "Play";
+    }
+
+    document.getElementById("playback-play").addEventListener("click", () => {
+      if (playing) stopPlay(); else startPlay();
+    });
+
+    document.getElementById("playback-scrub").addEventListener("input", (e) => {
+      curT = parseInt(e.target.value, 10);
+      applyFrame(curT);
+    });
+
+    document.getElementById("playback-speed").addEventListener("input", (e) => {
+      stepMs = parseInt(e.target.value, 10);
+      document.getElementById("playback-speed-val").textContent = stepMs + "ms";
+      if (playing) { stopPlay(); startPlay(); }
+    });
+
+    const playbackEl = document.getElementById("playback");
+    ["pointerdown", "mousedown", "touchstart", "wheel"].forEach(ev => {
+      playbackEl.addEventListener(ev, e => e.stopPropagation(), { passive: true });
+    });
+
+    applyFrame(0);
+  </script>
+</body>
+</html>
