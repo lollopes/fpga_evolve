@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lattice Viewer</title>
+<style>
+  :root {
+    --bg:        #0b0b0d;
+    --panel:    #14141a;
+    --border:   #2a2a33;
+    --text:     #e5e7eb;
+    --muted:    #94a3b8;
+    --accent:   #fcffa4;
+    --canvas-bg:#090909;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    grid-template-rows: 1fr 220px;
+    grid-template-areas:
+      "canvas side"
+      "bottom bottom";
+    height: 100%;
+  }
+  #canvas-wrap {
+    grid-area: canvas;
+    position: relative; background: var(--canvas-bg);
+    min-width: 0; min-height: 0;
+  }
+  #canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  #canvas:active { cursor: grabbing; }
+  #canvas.click-node { cursor: pointer; }
+
+  #side {
+    grid-area: side;
+    box-sizing: border-box; padding: 12px;
+    border-left: 1px solid var(--border);
+    background: var(--panel);
+    overflow-y: auto;
+  }
+  #bottom {
+    grid-area: bottom;
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr 280px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    min-height: 0;
+  }
+  .bp {
+    box-sizing: border-box; padding: 10px 10px 12px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto; min-height: 0;
+  }
+  .bp:last-child { border-right: none; }
+
+  h1 {
+    font-size: 12px; margin: 0 0 10px;
+    color: var(--accent); letter-spacing: 0.08em; font-weight: 700;
+  }
+  h2 {
+    font-size: 10px; margin: 0 0 6px;
+    color: var(--accent); letter-spacing: 0.1em; font-weight: 700;
+    text-transform: uppercase;
+  }
+  .group { margin-bottom: 12px; }
+  .label {
+    font-size: 9.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 5px;
+  }
+  .row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 1px 0; font-size: 11px;
+  }
+  .row label { cursor: pointer; user-select: none; }
+  .swatch {
+    width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
+  .stat { color: var(--muted); font-size: 11px; line-height: 1.55; }
+  .stat b { color: var(--text); font-weight: 600; }
+  .hint { color: var(--muted); font-size: 10.5px; line-height: 1.5; }
+
+  /* Sim controls */
+  .btn {
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 8px; font-family: inherit; font-size: 11px; font-weight: 700;
+    cursor: pointer; letter-spacing: 0.04em;
+    transition: background 0.05s, border-color 0.05s;
+  }
+  .btn:hover { background: #1c1c24; border-color: #4a4a55; }
+  .btn.primary {
+    background: rgba(252,255,164,0.10);
+    border-color: rgba(252,255,164,0.55); color: var(--accent);
+  }
+  .btn.primary:hover { background: rgba(252,255,164,0.18); }
+  .btn-row { display: flex; gap: 4px; margin-top: 4px; }
+  .btn-row .btn { flex: 1; padding: 5px 0; }
+
+  .speed-row {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+    font-size: 10.5px; color: var(--muted);
+  }
+  .speed-row input[type="range"] {
+    flex: 1; accent-color: var(--accent); margin: 0;
+  }
+
+  /* Input grid */
+  .input-grid {
+    display: grid; gap: 2px;
+  }
+  .input-cell {
+    width: 100%; aspect-ratio: 1 / 1;
+    background: #1a1a22; border: 1px solid var(--border); border-radius: 2px;
+    cursor: pointer;
+  }
+  .input-cell.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 4px rgba(252,255,164,0.6);
+  }
+
+  /* Bit / selector grids */
+  .layer-block { margin-bottom: 8px; }
+  .layer-title {
+    color: var(--muted); font-size: 9.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 4px 0 3px;
+  }
+  .node-row { display: flex; align-items: center; gap: 4px; margin: 2px 0; }
+  .node-tag {
+    width: 14px; flex: 0 0 14px; font-size: 10px; font-weight: 700;
+    text-align: center;
+  }
+  .bit {
+    min-width: 18px; height: 18px; padding: 0;
+    background: #1a1a22; color: #4b5563;
+    border: 1px solid var(--border); border-radius: 2px;
+    font-family: inherit; font-size: 10px; font-weight: 700;
+    cursor: pointer;
+    transition: background 0.05s, border-color 0.05s;
+  }
+  .bit:hover { border-color: #4a4a55; }
+  .bit.on {
+    background: rgba(74,222,128,0.20); color: #86efac;
+    border-color: rgba(74,222,128,0.55);
+  }
+  .sel-bit.on {
+    background: rgba(96,165,250,0.20); color: #93c5fd;
+    border-color: rgba(96,165,250,0.55);
+  }
+
+  .sel-row { display: flex; align-items: center; gap: 4px; margin: 1px 0; }
+  .sel-tag {
+    width: 22px; font-size: 9.5px; font-weight: 700; flex: 0 0 22px;
+    color: var(--muted);
+  }
+  .sel-bits { display: flex; gap: 2px; }
+  .sel-val {
+    margin-left: 4px; font-size: 10px; color: var(--muted);
+    min-width: 22px;
+  }
+
+  /* Raster */
+  .raster-controls {
+    display: flex; gap: 4px; margin-bottom: 6px;
+    font-size: 10.5px; align-items: center;
+  }
+  .raster-controls select {
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 2px 4px; font-family: inherit; font-size: 10.5px;
+  }
+  #raster-canvas {
+    width: 100%; height: 110px; display: block;
+    background: var(--canvas-bg); border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  #hover {
+    position: absolute; top: 8px; left: 8px;
+    pointer-events: none; font-size: 11px; color: var(--text);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 4px 7px; border-radius: 4px;
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .badge {
+    display: inline-block; padding: 1px 5px; margin-left: 4px;
+    background: rgba(252,255,164,0.12); color: var(--accent);
+    border-radius: 3px; font-size: 9.5px;
+  }
+  .err { color: #fca5a5; padding: 16px; font-family: inherit; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+    <div id="hover"></div>
+  </div>
+
+  <div id="side">
+    <h1>LATTICE</h1>
+    <div class="group" id="stats"></div>
+
+    <div class="group">
+      <div class="label">Simulation</div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-play">▶ Play</button>
+        <button class="btn"         id="btn-step">Step</button>
+        <button class="btn"         id="btn-reset">Reset</button>
+      </div>
+      <div class="speed-row">
+        <span>speed</span>
+        <input type="range" id="speed" min="2" max="30" value="10">
+        <span id="speed-val" style="min-width:34px; text-align:right;">10/s</span>
+      </div>
+      <div class="hint" style="margin-top:4px;">
+        step <span id="step-counter" class="badge">0</span>
+        active <span id="active-counter" class="badge">—</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="label">Connection kinds</div>
+      <div id="kind-toggles"></div>
+    </div>
+
+    <div class="group">
+      <div class="label">Layers</div>
+      <div id="layer-toggles"></div>
+    </div>
+
+    <div class="group">
+      <div class="label">Display</div>
+      <div class="row"><input type="checkbox" id="show-modules" checked>
+        <label for="show-modules">Module centers</label></div>
+      <div class="row"><input type="checkbox" id="show-input" checked>
+        <label for="show-input">Input neurons</label></div>
+      <div class="row"><input type="checkbox" id="show-arrows" checked>
+        <label for="show-arrows">Arrowheads</label></div>
+      <div class="row"><input type="checkbox" id="show-edges" checked>
+        <label for="show-edges">Edges</label></div>
+    </div>
+
+    <div class="group">
+      <div class="label">Hint</div>
+      <div class="hint">drag = rotate · wheel = zoom · shift-drag = pan · double-click = reset · click input neurons or grid below to inject spikes</div>
+    </div>
+  </div>
+
+  <div id="bottom">
+    <div class="bp" id="bp-input">
+      <h2>Input</h2>
+      <div class="hint" style="margin-bottom:6px;">click cells (or 3D input neurons) to queue spikes for the next step.</div>
+      <div class="input-grid" id="input-grid"></div>
+    </div>
+    <div class="bp" id="bp-lut">
+      <h2>LUT bits</h2>
+      <div class="hint" style="margin-bottom:6px;">click to flip 0 ↔ 1 in the truth table.</div>
+      <div id="lut-bits"></div>
+    </div>
+    <div class="bp" id="bp-sel">
+      <h2>Selectors</h2>
+      <div class="hint" style="margin-bottom:6px;">flip a bit to rewire a MUX (4 bits → pool index 0–15).</div>
+      <div id="sel-bits"></div>
+    </div>
+    <div class="bp" id="bp-raster">
+      <h2>Raster</h2>
+      <div class="raster-controls">
+        <span>z</span><select id="raster-z"></select>
+        <span>y</span><select id="raster-y"></select>
+        <span>x</span><select id="raster-x"></select>
+      </div>
+      <canvas id="raster-canvas"></canvas>
+      <div class="hint" style="margin-top:4px;">
+        <span style="color:#4169E1;">E</span> /
+        <span style="color:#DC143C;">I</span> /
+        <span style="color:#FF8C00;">O</span> spikes for the selected module · last 80 steps
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="lattice_scene.js"></script>
+<script>
+(() => {
+  const D = window.LATTICE_DATA;
+  if (!D) {
+    document.body.innerHTML =
+      '<div class="err">lattice_scene.js missing or empty.<br>' +
+      'Generate it with: <b>python viewer/visuals.py</b></div>';
+    return;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Live circuit state (mirrors src/lattice.py for B = 1)
+  // ────────────────────────────────────────────────────────────────────────
+  const Z = D.Z, H = D.H, W = D.W, k = D.k;
+  const POOL_SIZE = D.pool_size || 16;
+  const N_SITES = Z * H * W;
+  const HIST_LEN = 80;
+
+  // deep-copy the editable bits so we can mutate without touching D
+  const Net = {
+    layer_sel: D.layer_sel.map(z => z.map(n => n.slice())),  // [Z][3][k]
+    layer_lut: D.layer_lut.map(z => z.map(n => n.slice())),  // [Z][3][2**k]
+    distal_idx:    D.distal_idx,                              // [Z][H][W][2][3] (z,y,x)
+    identity_bits: D.identity_bits,                           // [Z][H][W][2]
+    use_distal:          D.use_distal,
+    use_identity:        D.use_identity,
+    use_positional_cues: D.use_positional_cues,
+  };
+
+  const State = {
+    state:  new Uint8Array(N_SITES),
+    next:   new Uint8Array(N_SITES),
+    lastE:  new Uint8Array(N_SITES),
+    lastI:  new Uint8Array(N_SITES),
+    lastO:  new Uint8Array(N_SITES),
+    inputSpikes: new Uint8Array(H * W),
+    stepCount: 0,
+    histE: new Uint8Array(N_SITES * HIST_LEN),
+    histI: new Uint8Array(N_SITES * HIST_LEN),
+    histO: new Uint8Array(N_SITES * HIST_LEN),
+    histHead: 0,
+    histFilled: 0,
+  };
+
+  function siteIdx(z, y, x) { return (z * H + y) * W + x; }
+  function inputIdx(y, x) { return y * W + x; }
+  function posCue(y, x) {
+    return [(x >= W / 2) ? 1 : 0, (y >= H / 2) ? 1 : 0];
+  }
+
+  function evalNode(z, n, pool) {
+    let addr = 0;
+    for (let s = 0; s < k; s++) {
+      const muxIdx = Net.layer_sel[z][n][s];
+      const bit = pool[muxIdx] & 1;
+      addr |= bit << (k - 1 - s);   // MSB first, matches node_forward
+    }
+    return Net.layer_lut[z][n][addr] & 1;
+  }
+
+  // One synchronous lattice update — port of Lattice3DNetwork.step.
+  function stepOnce() {
+    const pool = new Uint8Array(POOL_SIZE);
+    for (let z = 0; z < Z; z++) {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          // P[0..5]: 6 neighbours (out-of-bounds = 0)
+          pool[0] = (x - 1 >= 0) ? State.state[siteIdx(z, y, x - 1)] : 0;
+          pool[1] = (x + 1 <  W) ? State.state[siteIdx(z, y, x + 1)] : 0;
+          pool[2] = (y - 1 >= 0) ? State.state[siteIdx(z, y - 1, x)] : 0;
+          pool[3] = (y + 1 <  H) ? State.state[siteIdx(z, y + 1, x)] : 0;
+          pool[4] = (z - 1 >= 0) ? State.state[siteIdx(z - 1, y, x)] : 0;
+          pool[5] = (z + 1 <  Z) ? State.state[siteIdx(z + 1, y, x)] : 0;
+          // P[6] self bit
+          pool[6] = State.state[siteIdx(z, y, x)];
+          // P[7] feedforward (only z = 0 sees the input frame)
+          pool[7] = (z === 0) ? State.inputSpikes[inputIdx(y, x)] : 0;
+          // P[8..9] distal sources
+          if (Net.use_distal) {
+            const d0 = Net.distal_idx[z][y][x][0];
+            const d1 = Net.distal_idx[z][y][x][1];
+            pool[8] = State.state[siteIdx(d0[0], d0[1], d0[2])];
+            pool[9] = State.state[siteIdx(d1[0], d1[1], d1[2])];
+          } else { pool[8] = 0; pool[9] = 0; }
+          // P[10..11] identity bits
+          if (Net.use_identity) {
+            pool[10] = Net.identity_bits[z][y][x][0];
+            pool[11] = Net.identity_bits[z][y][x][1];
+          } else { pool[10] = 0; pool[11] = 0; }
+          // P[12..13] positional cues
+          if (Net.use_positional_cues) {
+            const pc = posCue(y, x);
+            pool[12] = pc[0]; pool[13] = pc[1];
+          } else { pool[12] = 0; pool[13] = 0; }
+          // P[14..15] reserved zero
+          pool[14] = 0; pool[15] = 0;
+
+          // E and I fire on the original pool.
+          const outE = evalNode(z, 0, pool);
+          const outI = evalNode(z, 1, pool);
+          // O sees pool with [0] replaced by E's output (E→O coupling).
+          const old0 = pool[0]; pool[0] = outE;
+          const outO = evalNode(z, 2, pool);
+          pool[0] = old0;
+
+          const flat = siteIdx(z, y, x);
+          State.lastE[flat] = outE;
+          State.lastI[flat] = outI;
+          State.lastO[flat] = outO;
+          State.next[flat]  = outO * (1 - outI);
+        }
+      }
+    }
+    // commit
+    State.state.set(State.next);
+
+    // record into ring buffer
+    const slot = State.histHead;
+    for (let i = 0; i < N_SITES; i++) {
+      State.histE[i * HIST_LEN + slot] = State.lastE[i];
+      State.histI[i * HIST_LEN + slot] = State.lastI[i];
+      State.histO[i * HIST_LEN + slot] = State.lastO[i];
+    }
+    State.histHead = (State.histHead + 1) % HIST_LEN;
+    if (State.histFilled < HIST_LEN) State.histFilled++;
+
+    State.stepCount++;
+    // input clears after each step (same as lattice_server.py)
+    State.inputSpikes.fill(0);
+  }
+
+  function resetSim() {
+    State.state.fill(0); State.next.fill(0);
+    State.lastE.fill(0); State.lastI.fill(0); State.lastO.fill(0);
+    State.inputSpikes.fill(0);
+    State.histE.fill(0); State.histI.fill(0); State.histO.fill(0);
+    State.histHead = 0; State.histFilled = 0;
+    State.stepCount = 0;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Geometry — port of resolve_source / node_pos / module_center / input_pos
+  // ────────────────────────────────────────────────────────────────────────
+  const [SX, SY, SZ] = D.spacing;
+
+  function moduleCenter(x, y, z) { return [x * SX, y * SY, z * SZ]; }
+  function inputPosFn (x, y)     { return [x * SX, y * SY, -SZ]; }
+  function nodePosFn (x, y, z, n) {
+    const [cx, cy, cz] = moduleCenter(x, y, z);
+    const off = D.node_offsets[n];
+    return [cx + off[0], cy + off[1], cz + off[2]];
+  }
+
+  const NEIGHBOUR_OFFSETS = [
+    [-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1],
+  ];
+  const NEIGHBOUR_KINDS = [
+    "lateral", "lateral", "lateral", "lateral", "vertical_up", "vertical_down",
+  ];
+
+  function resolveSource(x, y, z, p) {
+    if (p < 6) {
+      const [dx, dy, dz] = NEIGHBOUR_OFFSETS[p];
+      const nx = x + dx, ny = y + dy, nz = z + dz;
+      if (nx < 0 || nx >= W || ny < 0 || ny >= H || nz < 0 || nz >= Z) {
+        return null;
+      }
+      return { pos: moduleCenter(nx, ny, nz), kind: NEIGHBOUR_KINDS[p] };
+    }
+    if (p === 6) return { pos: moduleCenter(x, y, z), kind: "self" };
+    if (p === 7) {
+      if (z === 0) return { pos: inputPosFn(x, y), kind: "feedforward" };
+      return null;
+    }
+    if (p === 8 || p === 9) {
+      if (!Net.use_distal) return null;
+      const d = Net.distal_idx[z][y][x][p - 8];
+      return { pos: moduleCenter(d[2], d[1], d[0]), kind: `distal${p - 8}` };
+    }
+    if (p === 10 || p === 11) {
+      if (!Net.use_identity) return null;
+      return { pos: moduleCenter(x, y, z), kind: `identity${p - 10}` };
+    }
+    if (p === 12) {
+      if (!Net.use_positional_cues) return null;
+      return { pos: moduleCenter(x, y, z), kind: "positional_x" };
+    }
+    if (p === 13) {
+      if (!Net.use_positional_cues) return null;
+      return { pos: moduleCenter(x, y, z), kind: "positional_y" };
+    }
+    return null;
+  }
+
+  function rebuildEdges() {
+    const out = [];
+    for (let z = 0; z < Z; z++) {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          for (let n = 0; n < 3; n++) {
+            const target = nodePosFn(x, y, z, n);
+            for (let s = 0; s < k; s++) {
+              const p = Net.layer_sel[z][n][s];
+              const r = resolveSource(x, y, z, p);
+              if (!r) continue;
+              out.push({
+                from: r.pos, to: target,
+                kind: r.kind, color: D.kind_colors[r.kind] || "#888",
+                z: z, node_idx: n, selector_idx: s, pool_idx: p,
+              });
+            }
+          }
+        }
+      }
+    }
+    D.edges = out;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Camera
+  // ────────────────────────────────────────────────────────────────────────
+  const HOME = { rotX: -0.55, rotY: 0.7, zoom: 1.0, panX: 0, panY: 0 };
+  let rotX = HOME.rotX, rotY = HOME.rotY, zoom = HOME.zoom;
+  let panX = HOME.panX, panY = HOME.panY;
+
+  let cx0 = 0, cy0 = 0, cz0 = 0;
+  for (const n of D.nodes) { cx0 += n.pos[0]; cy0 += n.pos[1]; cz0 += n.pos[2]; }
+  cx0 /= D.nodes.length; cy0 /= D.nodes.length; cz0 /= D.nodes.length;
+
+  function project(p) {
+    const x = p[0] - cx0, y = p[1] - cy0, z = p[2] - cz0;
+    const sxr = Math.sin(rotY), cxr = Math.cos(rotY);
+    const x1 = cxr * x + sxr * z;
+    const z1 = -sxr * x + cxr * z;
+    const syr = Math.sin(rotX), cyr = Math.cos(rotX);
+    const y1 = cyr * y - syr * z1;
+    const z2 = syr * y + cyr * z1;
+    return [x1, y1, z2];
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Visibility
+  // ────────────────────────────────────────────────────────────────────────
+  const KIND_LABELS = {
+    lateral: "lateral",
+    vertical_up: "vertical up", vertical_down: "vertical down",
+    self: "self", feedforward: "feedforward",
+    distal0: "distal 0", distal1: "distal 1",
+    identity0: "identity 0", identity1: "identity 1",
+    positional_x: "positional x", positional_y: "positional y",
+    zero: "zero / dead",
+  };
+  const ALL_KINDS = Object.keys(KIND_LABELS);
+  const visibleKinds = new Set(ALL_KINDS);
+  visibleKinds.delete("zero");
+
+  const visibleLayers = new Set();
+  for (let z = 0; z < Z; z++) visibleLayers.add(z);
+  visibleLayers.add(-1);
+
+  let showModules = true;
+  let showInput   = true;
+  let showArrows  = true;
+  let showEdges   = true;
+
+  // ────────────────────────────────────────────────────────────────────────
+  // DOM
+  // ────────────────────────────────────────────────────────────────────────
+  const canvas  = document.getElementById('canvas');
+  const ctx     = canvas.getContext('2d');
+  const hover   = document.getElementById('hover');
+  const statsEl = document.getElementById('stats');
+  const kindEl  = document.getElementById('kind-toggles');
+  const layerEl = document.getElementById('layer-toggles');
+
+  statsEl.innerHTML =
+    `<div class="stat">Z=<b>${Z}</b>&nbsp; H=<b>${H}</b>&nbsp; ` +
+    `W=<b>${W}</b>&nbsp; k=<b>${k}</b></div>` +
+    `<div class="stat">nodes=<b>${D.nodes.length}</b>&nbsp; ` +
+    `edges=<b>${D.edges.length}</b></div>` +
+    `<div class="stat">distal=<b>${Net.use_distal}</b>&nbsp; ` +
+    `identity=<b>${Net.use_identity}</b>&nbsp; ` +
+    `pos=<b>${Net.use_positional_cues}</b></div>`;
+
+  function makeRow(parent, controls) {
+    const row = document.createElement('div'); row.className = 'row';
+    for (const c of controls) row.appendChild(c);
+    parent.appendChild(row); return row;
+  }
+  function checkbox(checked) {
+    const cb = document.createElement('input'); cb.type = 'checkbox';
+    cb.checked = checked; return cb;
+  }
+  function span(text, cls) {
+    const s = document.createElement('span');
+    if (cls) s.className = cls;
+    s.textContent = text; return s;
+  }
+  function labelEl(text) {
+    const l = document.createElement('label'); l.textContent = text; return l;
+  }
+
+  // Connection-kind toggles
+  for (const kind of ALL_KINDS) {
+    const sw = span("", "swatch");
+    sw.style.background = D.kind_colors[kind] || "#888";
+    const cb = checkbox(visibleKinds.has(kind));
+    cb.id = `cb-kind-${kind}`;
+    const lbl = labelEl(KIND_LABELS[kind]); lbl.htmlFor = cb.id;
+    cb.addEventListener('change', () => {
+      if (cb.checked) visibleKinds.add(kind); else visibleKinds.delete(kind);
+      draw();
+    });
+    makeRow(kindEl, [sw, cb, lbl]);
+  }
+
+  function addLayerToggle(z, label) {
+    const cb = checkbox(visibleLayers.has(z));
+    cb.id = `cb-layer-${z}`;
+    const lbl = labelEl(label); lbl.htmlFor = cb.id;
+    cb.addEventListener('change', () => {
+      if (cb.checked) visibleLayers.add(z); else visibleLayers.delete(z);
+      draw();
+    });
+    makeRow(layerEl, [cb, lbl]);
+  }
+  for (let z = 0; z < Z; z++) addLayerToggle(z, `z = ${z}`);
+  addLayerToggle(-1, "input plane");
+
+  document.getElementById('show-modules').addEventListener('change',
+    e => { showModules = e.target.checked; draw(); });
+  document.getElementById('show-input').addEventListener('change',
+    e => { showInput = e.target.checked; draw(); });
+  document.getElementById('show-arrows').addEventListener('change',
+    e => { showArrows = e.target.checked; draw(); });
+  document.getElementById('show-edges').addEventListener('change',
+    e => { showEdges = e.target.checked; draw(); });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Bottom panels
+  // ────────────────────────────────────────────────────────────────────────
+
+  // Input grid
+  const inputGrid = document.getElementById('input-grid');
+  inputGrid.style.gridTemplateColumns = `repeat(${W}, 1fr)`;
+  const inputCells = new Array(H * W);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'input-cell';
+      cell.title = `in(${x},${y})`;
+      cell.addEventListener('click', () => {
+        const i = inputIdx(y, x);
+        State.inputSpikes[i] = State.inputSpikes[i] ? 0 : 1;
+        refreshInputCells();
+        draw();
+      });
+      inputGrid.appendChild(cell);
+      inputCells[inputIdx(y, x)] = cell;
+    }
+  }
+  function refreshInputCells() {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = inputIdx(y, x);
+        inputCells[i].classList.toggle('on', !!State.inputSpikes[i]);
+      }
+    }
+  }
+
+  // LUT bits panel
+  const lutEl = document.getElementById('lut-bits');
+  const lutBtns = [];   // lutBtns[z][n][b]
+  const NODE_NAMES = D.node_names;
+  const NODE_COLORS = D.node_colors;
+  const LUT_SIZE = 1 << k;
+
+  for (let z = 0; z < Z; z++) {
+    const block = document.createElement('div'); block.className = 'layer-block';
+    const title = document.createElement('div'); title.className = 'layer-title';
+    title.textContent = `Layer ${z}`;
+    block.appendChild(title);
+    lutBtns[z] = [];
+    for (let n = 0; n < 3; n++) {
+      const row = document.createElement('div'); row.className = 'node-row';
+      const tag = document.createElement('span'); tag.className = 'node-tag';
+      tag.textContent = NODE_NAMES[n]; tag.style.color = NODE_COLORS[n];
+      row.appendChild(tag);
+      lutBtns[z][n] = [];
+      for (let b = 0; b < LUT_SIZE; b++) {
+        const btn = document.createElement('button');
+        btn.className = 'bit'; btn.title = `addr ${b}`;
+        btn.textContent = Net.layer_lut[z][n][b];
+        btn.addEventListener('click', () => {
+          Net.layer_lut[z][n][b] ^= 1;
+          btn.textContent = Net.layer_lut[z][n][b];
+          btn.classList.toggle('on', !!Net.layer_lut[z][n][b]);
+        });
+        if (Net.layer_lut[z][n][b]) btn.classList.add('on');
+        row.appendChild(btn);
+        lutBtns[z][n][b] = btn;
+      }
+      block.appendChild(row);
+    }
+    lutEl.appendChild(block);
+  }
+
+  // Selector panel
+  const selEl = document.getElementById('sel-bits');
+  const selBitBtns = [];   // selBitBtns[z][n][s][bit]
+  const selValSpans = [];  // selValSpans[z][n][s]
+  const SEL_BITS = 4;       // 0..15
+  for (let z = 0; z < Z; z++) {
+    const block = document.createElement('div'); block.className = 'layer-block';
+    const title = document.createElement('div'); title.className = 'layer-title';
+    title.textContent = `Layer ${z}`;
+    block.appendChild(title);
+    selBitBtns[z] = []; selValSpans[z] = [];
+    for (let n = 0; n < 3; n++) {
+      selBitBtns[z][n] = []; selValSpans[z][n] = [];
+      for (let s = 0; s < k; s++) {
+        const row = document.createElement('div'); row.className = 'sel-row';
+        const tag = document.createElement('span'); tag.className = 'sel-tag';
+        tag.textContent = `${NODE_NAMES[n]}${s}`; tag.style.color = NODE_COLORS[n];
+        row.appendChild(tag);
+
+        const bits = document.createElement('div'); bits.className = 'sel-bits';
+        const btns = [];
+        for (let b = SEL_BITS - 1; b >= 0; b--) {   // MSB first
+          const btn = document.createElement('button');
+          btn.className = 'bit sel-bit';
+          btn.textContent = (Net.layer_sel[z][n][s] >> b) & 1;
+          if ((Net.layer_sel[z][n][s] >> b) & 1) btn.classList.add('on');
+          btn.addEventListener('click', () => {
+            Net.layer_sel[z][n][s] ^= (1 << b);
+            const bit = (Net.layer_sel[z][n][s] >> b) & 1;
+            btn.textContent = bit;
+            btn.classList.toggle('on', !!bit);
+            updateSelValDisplay(z, n, s);
+            rebuildEdges();
+            draw();
+          });
+          bits.appendChild(btn);
+          btns.push(btn);
+        }
+        row.appendChild(bits);
+
+        const val = document.createElement('span'); val.className = 'sel-val';
+        val.textContent = `→ ${Net.layer_sel[z][n][s]}`;
+        row.appendChild(val);
+
+        selBitBtns[z][n][s] = btns;
+        selValSpans[z][n][s] = val;
+        block.appendChild(row);
+      }
+    }
+    selEl.appendChild(block);
+  }
+  function updateSelValDisplay(z, n, s) {
+    selValSpans[z][n][s].textContent = `→ ${Net.layer_sel[z][n][s]}`;
+  }
+
+  // Raster panel
+  const rasterZ = document.getElementById('raster-z');
+  const rasterY = document.getElementById('raster-y');
+  const rasterX = document.getElementById('raster-x');
+  const rasterCanvas = document.getElementById('raster-canvas');
+  const rasterCtx = rasterCanvas.getContext('2d');
+  for (let z = 0; z < Z; z++) {
+    const o = document.createElement('option'); o.value = z; o.textContent = z;
+    rasterZ.appendChild(o);
+  }
+  for (let y = 0; y < H; y++) {
+    const o = document.createElement('option'); o.value = y; o.textContent = y;
+    rasterY.appendChild(o);
+  }
+  for (let x = 0; x < W; x++) {
+    const o = document.createElement('option'); o.value = x; o.textContent = x;
+    rasterX.appendChild(o);
+  }
+  rasterZ.value = 0; rasterY.value = 0; rasterX.value = 0;
+  [rasterZ, rasterY, rasterX].forEach(s => s.addEventListener('change', drawRaster));
+
+  function drawRaster() {
+    const dpr = window.devicePixelRatio || 1;
+    const cw = rasterCanvas.clientWidth, ch = rasterCanvas.clientHeight;
+    if (rasterCanvas.width !== cw * dpr || rasterCanvas.height !== ch * dpr) {
+      rasterCanvas.width  = cw * dpr;
+      rasterCanvas.height = ch * dpr;
+    }
+    rasterCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    rasterCtx.fillStyle = '#090909';
+    rasterCtx.fillRect(0, 0, cw, ch);
+
+    if (State.histFilled === 0) {
+      rasterCtx.fillStyle = '#475569'; rasterCtx.font = '10px monospace';
+      rasterCtx.textAlign = 'center';
+      rasterCtx.fillText('press Step or Play to generate spikes', cw / 2, ch / 2);
+      return;
+    }
+
+    const z = +rasterZ.value, y = +rasterY.value, x = +rasterX.value;
+    const flat = siteIdx(z, y, x);
+    const N = State.histFilled;
+    const start = (State.histHead - N + HIST_LEN) % HIST_LEN;
+
+    const colors = ['#4169E1', '#DC143C', '#FF8C00'];
+    const labels = ['E', 'I', 'O'];
+    const arrays = [State.histE, State.histI, State.histO];
+    const top = 6, bot = ch - 14, span = (bot - top) / 3;
+    const colW = (cw - 30) / Math.max(N, 1);
+
+    rasterCtx.font = '10px monospace'; rasterCtx.textAlign = 'left';
+    for (let row = 0; row < 3; row++) {
+      const yMid = top + span * (row + 0.5);
+      rasterCtx.fillStyle = colors[row];
+      rasterCtx.fillText(labels[row], 4, yMid + 3);
+      const arr = arrays[row];
+      rasterCtx.strokeStyle = colors[row]; rasterCtx.lineWidth = 1.4;
+      rasterCtx.beginPath();
+      for (let i = 0; i < N; i++) {
+        const slot = (start + i) % HIST_LEN;
+        if (arr[flat * HIST_LEN + slot]) {
+          const xx = 22 + i * colW + colW * 0.5;
+          rasterCtx.moveTo(xx, yMid - span * 0.4);
+          rasterCtx.lineTo(xx, yMid + span * 0.4);
+        }
+      }
+      rasterCtx.stroke();
+    }
+    rasterCtx.fillStyle = '#475569';
+    rasterCtx.fillText(`step ${State.stepCount}`, cw - 70, ch - 2);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Sim controls
+  // ────────────────────────────────────────────────────────────────────────
+  const btnPlay  = document.getElementById('btn-play');
+  const btnStep  = document.getElementById('btn-step');
+  const btnReset = document.getElementById('btn-reset');
+  const speedSl  = document.getElementById('speed');
+  const speedVal = document.getElementById('speed-val');
+  const stepCounter   = document.getElementById('step-counter');
+  const activeCounter = document.getElementById('active-counter');
+
+  let isPlaying = false;
+  let playTimer = null;
+
+  function updateCounters() {
+    stepCounter.textContent = State.stepCount;
+    let active = 0;
+    for (let i = 0; i < N_SITES; i++) if (State.state[i]) active++;
+    activeCounter.textContent = `${active}/${N_SITES}`;
+  }
+
+  function doStep() {
+    stepOnce();
+    refreshInputCells();
+    updateCounters();
+    drawRaster();
+    draw();
+  }
+
+  function setPlaying(on) {
+    isPlaying = on;
+    btnPlay.textContent = on ? '⏸ Pause' : '▶ Play';
+    btnPlay.classList.toggle('primary', !on);
+    if (playTimer) { clearInterval(playTimer); playTimer = null; }
+    if (on) {
+      const fps = +speedSl.value;
+      playTimer = setInterval(doStep, Math.max(20, 1000 / fps));
+    }
+  }
+
+  btnPlay.addEventListener('click',  () => setPlaying(!isPlaying));
+  btnStep.addEventListener('click',  doStep);
+  btnReset.addEventListener('click', () => {
+    setPlaying(false);
+    resetSim();
+    refreshInputCells();
+    updateCounters();
+    drawRaster();
+    draw();
+  });
+  speedSl.addEventListener('input', () => {
+    speedVal.textContent = `${speedSl.value}/s`;
+    if (isPlaying) setPlaying(true);   // restart with new rate
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Drawing
+  // ────────────────────────────────────────────────────────────────────────
+  function nodeVisible(n) {
+    if (n.kind === 'module' && !showModules) return false;
+    if (n.kind === 'input'  && !showInput)   return false;
+    return visibleLayers.has(n.z);
+  }
+  function edgeVisible(e) {
+    if (!showEdges) return false;
+    if (!visibleKinds.has(e.kind)) return false;
+    return visibleLayers.has(e.z);
+  }
+
+  function viewport() {
+    return {
+      w:  canvas.clientWidth,
+      h:  canvas.clientHeight,
+      cx: canvas.clientWidth  / 2 + panX,
+      cy: canvas.clientHeight / 2 + panY,
+    };
+  }
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+      canvas.width  = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+  }
+
+  function drawArrow(u0, v0, u1, v1, color, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.0;
+    ctx.beginPath(); ctx.moveTo(u0, v0); ctx.lineTo(u1, v1); ctx.stroke();
+    if (showArrows) {
+      const dx = u1 - u0, dy = v1 - v0;
+      const len = Math.hypot(dx, dy) || 1;
+      const tx = dx / len, ty = dy / len;
+      const nx = -ty,      ny = tx;
+      const ah = 6, aw = 3;
+      const bx = u1 - tx * ah, by = v1 - ty * ah;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(u1, v1);
+      ctx.lineTo(bx + nx * aw, by + ny * aw);
+      ctx.lineTo(bx - nx * aw, by - ny * aw);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+  }
+
+  // Active-color helpers
+  function nodeIsActive(n) {
+    if (n.kind === 'module' && n.site) {
+      const [x, y, z] = n.site;
+      return !!State.state[siteIdx(z, y, x)];
+    }
+    if (n.kind === 'node' && n.site) {
+      const [x, y, z] = n.site;
+      const flat = siteIdx(z, y, x);
+      if (n.node_idx === 0) return !!State.lastE[flat];
+      if (n.node_idx === 1) return !!State.lastI[flat];
+      if (n.node_idx === 2) return !!State.lastO[flat];
+    }
+    if (n.kind === 'input' && n.site) {
+      const [x, y] = n.site;
+      return !!State.inputSpikes[inputIdx(y, x)];
+    }
+    return false;
+  }
+  function nodeAlpha(n, on) {
+    if (n.kind === 'module') return on ? 1.0  : 0.35;
+    if (n.kind === 'node')   return on ? 1.0  : 0.30;
+    if (n.kind === 'input')  return on ? 1.0  : 0.55;
+    return 1.0;
+  }
+  function nodeColor(n, on) {
+    if (n.kind === 'module') return on ? '#fcffa4' : n.color;
+    if (n.kind === 'input')  return on ? '#fcffa4' : n.color;
+    return n.color;
+  }
+
+  let lastProj = [];
+
+  function draw() {
+    resize();
+    const { w, h, cx, cy } = viewport();
+    ctx.fillStyle = '#090909';
+    ctx.fillRect(0, 0, w, h);
+
+    const np = new Array(D.nodes.length);
+    for (let i = 0; i < D.nodes.length; i++) {
+      const p = project(D.nodes[i].pos);
+      np[i] = { node: D.nodes[i], x: p[0], y: p[1], z: p[2] };
+    }
+
+    let maxR = 1;
+    for (const a of np) {
+      const r = Math.max(Math.abs(a.x), Math.abs(a.y));
+      if (r > maxR) maxR = r;
+    }
+    const baseScale = Math.min(w, h) * 0.42 / maxR;
+    const scale = baseScale * zoom;
+    function toPx(x, y) { return [cx + x * scale, cy - y * scale]; }
+
+    let zmin = +Infinity, zmax = -Infinity;
+    for (const a of np) {
+      if (a.z < zmin) zmin = a.z;
+      if (a.z > zmax) zmax = a.z;
+    }
+    const zspan = Math.max(1e-6, zmax - zmin);
+    const fade = (z) => 0.35 + 0.65 * (z - zmin) / zspan;
+
+    // 1. edges (back to front)
+    if (showEdges) {
+      const ep = [];
+      for (const e of D.edges) {
+        if (!edgeVisible(e)) continue;
+        const a = project(e.from), b = project(e.to);
+        ep.push({ edge: e, ax: a[0], ay: a[1], az: a[2],
+                  bx: b[0], by: b[1], bz: b[2],
+                  midZ: (a[2] + b[2]) * 0.5 });
+      }
+      ep.sort((p, q) => p.midZ - q.midZ);
+      for (const e of ep) {
+        const [u0, v0] = toPx(e.ax, e.ay);
+        const [u1, v1] = toPx(e.bx, e.by);
+        drawArrow(u0, v0, u1, v1, e.edge.color, fade(e.midZ) * 0.85);
+      }
+    }
+
+    // 2. nodes (back to front), with activity tinting
+    const visNodes = np.filter(a => nodeVisible(a.node));
+    visNodes.sort((a, b) => a.z - b.z);
+    for (const a of visNodes) {
+      const [u, v] = toPx(a.x, a.y);
+      const baseR = a.node.radius || 2.0;
+      const r = baseR * Math.sqrt(zoom);
+      const on = nodeIsActive(a.node);
+      ctx.globalAlpha = nodeAlpha(a.node, on);
+      ctx.fillStyle = nodeColor(a.node, on);
+      ctx.beginPath();
+      ctx.arc(u, v, r, 0, Math.PI * 2);
+      ctx.fill();
+      if (on && a.node.kind !== 'module') {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        ctx.arc(u, v, r + 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+    }
+
+    lastProj = visNodes.map(a => {
+      const [u, v] = toPx(a.x, a.y);
+      return { u, v, r: (a.node.radius || 2.0) * Math.sqrt(zoom), node: a.node };
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Pointer interaction (drag, zoom, hover, click input neurons)
+  // ────────────────────────────────────────────────────────────────────────
+  let dragMode = null, dragX0 = 0, dragY0 = 0, lastX = 0, lastY = 0, didDrag = false;
+
+  function pickNode(u, v) {
+    let best = null, bestD = 1e9;
+    for (const p of lastProj) {
+      const d = Math.hypot(p.u - u, p.v - v);
+      if (d < p.r + 4 && d < bestD) { best = p; bestD = d; }
+    }
+    return best;
+  }
+
+  canvas.addEventListener('pointermove', e => {
+    if (dragMode) return;
+    const rect = canvas.getBoundingClientRect();
+    const u = e.clientX - rect.left, v = e.clientY - rect.top;
+    const best = pickNode(u, v);
+    if (best) {
+      hover.style.display = 'block';
+      hover.textContent   = best.node.label || best.node.kind;
+      canvas.classList.toggle('click-node', best.node.kind === 'input');
+    } else {
+      hover.style.display = 'none';
+      canvas.classList.remove('click-node');
+    }
+  });
+  canvas.addEventListener('pointerleave', () => {
+    hover.style.display = 'none';
+    canvas.classList.remove('click-node');
+  });
+
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId);
+    dragMode = (e.button === 2 || e.shiftKey) ? 'pan' : 'rotate';
+    dragX0 = lastX = e.clientX; dragY0 = lastY = e.clientY;
+    didDrag = false;
+    hover.style.display = 'none';
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!dragMode) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (Math.abs(e.clientX - dragX0) + Math.abs(e.clientY - dragY0) > 4) didDrag = true;
+    lastX = e.clientX; lastY = e.clientY;
+    if (dragMode === 'rotate') { rotY += dx * 0.01; rotX += dy * 0.01; }
+    else                       { panX += dx;        panY += dy; }
+    draw();
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (dragMode && !didDrag) {
+      // treat as click: if over an input neuron, toggle it
+      const rect = canvas.getBoundingClientRect();
+      const u = e.clientX - rect.left, v = e.clientY - rect.top;
+      const best = pickNode(u, v);
+      if (best && best.node.kind === 'input' && best.node.site) {
+        const [x, y] = best.node.site;
+        const i = inputIdx(y, x);
+        State.inputSpikes[i] = State.inputSpikes[i] ? 0 : 1;
+        refreshInputCells();
+        draw();
+      }
+    }
+    dragMode = null;
+  });
+  canvas.addEventListener('pointercancel', () => { dragMode = null; });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoom *= Math.exp(-e.deltaY * 0.001);
+    zoom = Math.max(0.2, Math.min(6.0, zoom));
+    draw();
+  }, { passive: false });
+
+  canvas.addEventListener('dblclick', () => {
+    rotX = HOME.rotX; rotY = HOME.rotY; zoom = HOME.zoom;
+    panX = HOME.panX; panY = HOME.panY;
+    draw();
+  });
+
+  window.addEventListener('resize', () => { draw(); drawRaster(); });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Initial render
+  // ────────────────────────────────────────────────────────────────────────
+  resize();
+  refreshInputCells();
+  updateCounters();
+  drawRaster();
+  draw();
+})();
+</script>
+</body>
+</html>
