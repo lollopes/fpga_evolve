@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: evo-boolean-network
+Version: 0.1.0
+Summary: Evolvable synchronous Boolean network — Python model for FPGA exploration
+Requires-Python: >=3.10
+Requires-Dist: keras>=3.12.1
+Requires-Dist: matplotlib>=3.10.9
+Requires-Dist: networkx>=3.4.2
+Requires-Dist: numpy>=1.24
+Provides-Extra: dev
+Requires-Dist: pytest>=7; extra == "dev"
+Provides-Extra: viz
+Requires-Dist: dash>=2.0; extra == "viz"
+Requires-Dist: dash-cytoscape>=0.3.0; extra == "viz"
+Requires-Dist: plotly>=5.0; extra == "viz"
+Requires-Dist: networkx>=3.0; extra == "viz"
+Requires-Dist: comm>=0.2.0; extra == "viz"
