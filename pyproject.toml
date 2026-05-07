@@ -1,0 +1,11 @@
+[project]
+name = "fpga-evolve"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyvista>=0.48.1",
+    "tonic>=1.6.0",
+    "torch>=2.11.0",
+]
