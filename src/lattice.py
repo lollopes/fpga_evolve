@@ -137,8 +137,8 @@ class Lattice3DNetwork(nn.Module):
             )
 
         # Unpack and register genome buffers
-        sels = [g[:, :, :k].long() for g in layer_genomes]    # Z × [B, 3, k]
-        luts = [g[:, :, k:].long() for g in layer_genomes]    # Z × [B, 3, 2**k]
+        sels = [g[:, :, :k].to(torch.uint8) for g in layer_genomes]  # Z × [B, 3, k]
+        luts = [g[:, :, k:].bool() for g in layer_genomes]           # Z × [B, 3, 2**k]
         self.register_buffer("layer_sel", torch.stack(sels, dim=0))  # [Z, B, 3, k]
         self.register_buffer("layer_lut", torch.stack(luts, dim=0))  # [Z, B, 3, 2**k]
 
@@ -161,23 +161,23 @@ class Lattice3DNetwork(nn.Module):
         # Deterministic identity bits: 2 binary bits per module, seeded once, never evolved
         _g = torch.Generator()
         _g.manual_seed(identity_seed)
-        identity_bits = torch.randint(0, 2, (Z, H, W, 2), dtype=torch.long, generator=_g)
+        identity_bits = torch.randint(0, 2, (Z, H, W, 2), dtype=torch.uint8, generator=_g).bool()
         self.register_buffer("identity_bits", identity_bits)  # [Z, H, W, 2]
 
         # Binary positional cues: half-plane indicator along x (P[12]) and y (P[13])
-        pos_x = (torch.arange(W) >= W // 2).long()  # [W]
-        pos_y = (torch.arange(H) >= H // 2).long()  # [H]
+        pos_x = torch.arange(W) >= W // 2  # [W]
+        pos_y = torch.arange(H) >= H // 2  # [H]
         self.register_buffer(
             "pos_cue",
             torch.stack([
                 pos_x.unsqueeze(0).expand(H, W),  # [H, W]
                 pos_y.unsqueeze(1).expand(H, W),  # [H, W]
-            ], dim=-1).long().contiguous()         # [H, W, 2]
+            ], dim=-1).contiguous()                # [H, W, 2]
         )
 
         # Recurrent state, zeroed at construction (reset before each sequence)
         self.register_buffer(
-            "state", torch.zeros(B, Z, H, W, self.K, dtype=torch.long)
+            "state", torch.zeros(B, Z, H, W, self.K, dtype=torch.bool)
         )
         assert self.state.shape == (B, Z, H, W, self.K), (
             f"state shape {tuple(self.state.shape)} != "
@@ -196,7 +196,7 @@ class Lattice3DNetwork(nn.Module):
         output_vector : [..., K] long binary
         Returns       : [...] long binary  (1 if any bit is 1)
         """
-        return (output_vector.sum(dim=-1) > 0).long()
+        return output_vector.any(dim=-1)
 
     def build_pool(
         self,
@@ -224,13 +224,13 @@ class Lattice3DNetwork(nn.Module):
             if nx < 0 or nx >= self.W \
                     or ny < 0 or ny >= self.H \
                     or nz < 0 or nz >= self.Z:
-                return torch.zeros(B, dtype=torch.long, device=dev)
+                return torch.zeros(B, dtype=torch.bool, device=dev)
             return self.get_activity(state[:, nz, ny, nx, :])
 
         # Feedforward: only z=0 receives the raw sensory frame
         ff = self.get_feedforward_input(x, y, z, input_sequence, t=t)
 
-        zeros = torch.zeros(B, dtype=torch.long, device=dev)
+        zeros = torch.zeros(B, dtype=torch.bool, device=dev)
 
         # Distal sources assigned to this module
         if self.use_distal:
@@ -246,11 +246,11 @@ class Lattice3DNetwork(nn.Module):
         if self.use_identity:
             ident_b = self.identity_bits[z, y, x].unsqueeze(0).expand(B, -1)  # [B, 2]
         else:
-            ident_b = torch.zeros(B, 2, dtype=torch.long, device=dev)
+            ident_b = torch.zeros(B, 2, dtype=torch.bool, device=dev)
         if self.use_positional_cues:
             pos_b = self.pos_cue[y, x].unsqueeze(0).expand(B, -1)             # [B, 2]
         else:
-            pos_b = torch.zeros(B, 2, dtype=torch.long, device=dev)
+            pos_b = torch.zeros(B, 2, dtype=torch.bool, device=dev)
 
         pool = torch.stack([
             nbr(x - 1, y,     z    ),   # P[0]  left
@@ -296,10 +296,10 @@ class Lattice3DNetwork(nn.Module):
         """
         if z > 0:
             B = self.state.shape[0]
-            return torch.zeros(B, dtype=torch.long, device=self.state.device)
+            return torch.zeros(B, dtype=torch.bool, device=self.state.device)
         if t is not None:
-            return input_sequence[:, t, y, x]   # [B]
-        return input_sequence[:, y, x]           # [B] (single-frame path)
+            return input_sequence[:, t, y, x].bool()   # [B]
+        return input_sequence[:, y, x].bool()    # [B] (single-frame path)
 
     # ------------------------------------------------------------------
     # Synchronous step (vectorised over all sites)
@@ -316,6 +316,7 @@ class Lattice3DNetwork(nn.Module):
         input_t : [B, H, W] long — binary sensory frame for z=0.
         Returns : new state [B, Z, H, W, 1]
         """
+        input_t = input_t.bool()
         state = self.state  # [B, Z, H, W, 1]
         B, Z, H, W, _ = state.shape
         dev = state.device
@@ -328,34 +329,34 @@ class Lattice3DNetwork(nn.Module):
         padded_hw = F.pad(act.float(), (1, 1, 1, 1))       # [B, Z, H+2, W+2]
         padded_z  = F.pad(act.float(), (0, 0, 0, 0, 1, 1)) # [B, Z+2, H,   W  ]
 
-        left  = padded_hw[:, :, 1:-1, :-2].long()    # [B, Z, H, W] — x-1
-        right = padded_hw[:, :, 1:-1, 2: ].long()    # [B, Z, H, W] — x+1
-        up    = padded_hw[:, :, :-2, 1:-1].long()    # [B, Z, H, W] — y-1
-        down  = padded_hw[:, :, 2:,  1:-1].long()    # [B, Z, H, W] — y+1
-        above = padded_z[:, :-2].long()               # [B, Z, H, W] — z-1
-        below = padded_z[:, 2: ].long()               # [B, Z, H, W] — z+1
+        left  = padded_hw[:, :, 1:-1, :-2].bool()    # [B, Z, H, W] — x-1
+        right = padded_hw[:, :, 1:-1, 2: ].bool()    # [B, Z, H, W] — x+1
+        up    = padded_hw[:, :, :-2, 1:-1].bool()    # [B, Z, H, W] — y-1
+        down  = padded_hw[:, :, 2:,  1:-1].bool()    # [B, Z, H, W] — y+1
+        above = padded_z[:, :-2].bool()              # [B, Z, H, W] — z-1
+        below = padded_z[:, 2: ].bool()              # [B, Z, H, W] — z+1
 
         # ---- 3. Feedforward: z=0 gets input_t, z>0 gets zero ----------
-        ff = torch.zeros(B, Z, H, W, dtype=torch.long, device=dev)
+        ff = torch.zeros(B, Z, H, W, dtype=torch.bool, device=dev)
         ff[:, 0] = input_t  # broadcast over H×W
 
         # ---- 4. Distal signals for all modules -------------------------
         if self.use_distal:
             dist = self._gather_distal(act)  # [B, Z, H, W, 2]
         else:
-            dist = torch.zeros(B, Z, H, W, 2, dtype=torch.long, device=dev)
+            dist = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
 
         # ---- 5. Assemble pool [B, Z, H, W, 16] -------------------------
         # identity_bits [Z,H,W,2] and pos_cue [H,W,2] broadcast to [B,Z,H,W,2]
         if self.use_identity:
             identity = self.identity_bits.unsqueeze(0).expand(B, -1, -1, -1, -1)
         else:
-            identity = torch.zeros(B, Z, H, W, 2, dtype=torch.long, device=dev)
+            identity = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
         if self.use_positional_cues:
             pos = self.pos_cue.unsqueeze(0).unsqueeze(0).expand(B, Z, -1, -1, -1)
         else:
-            pos = torch.zeros(B, Z, H, W, 2, dtype=torch.long, device=dev)
-        zeros2 = torch.zeros(B, Z, H, W, 2, dtype=torch.long, device=dev)
+            pos = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
+        zeros2 = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
         pool = torch.cat([
             torch.stack([left, right, up, down, above, below,  # P[0-5]
                          state[..., 0],                        # P[6] self bit
@@ -397,7 +398,7 @@ class Lattice3DNetwork(nn.Module):
         O_raw = node_forward(sel[:, 2:3], lut[:, 2:3], O_pool)     # [N, 1]
 
         # ---- 9. I gating → K=1 output bit per module -----------------
-        o = O_raw * (1 - out_I)  # [N, 1]
+        o = O_raw & (~out_I)  # [N, 1]
 
         new_state = o.reshape(B, Z, H, W, 1)
         self.state.copy_(new_state)
@@ -488,7 +489,7 @@ class Lattice3DNetwork(nn.Module):
         """
         # Permute stored buffers from [Z, B, 3, *] to [B, Z, 3, *], then cat on last dim.
         sel = self.layer_sel.permute(1, 0, 2, 3)  # [B, Z, 3, k]
-        lut = self.layer_lut.permute(1, 0, 2, 3)  # [B, Z, 3, 2**k]
+        lut = self.layer_lut.permute(1, 0, 2, 3).to(torch.uint8)  # [B, Z, 3, 2**k]
         return torch.cat([sel, lut], dim=-1)        # [B, Z, 3, k + 2**k]
 
     # ------------------------------------------------------------------
@@ -522,8 +523,8 @@ class Lattice3DNetwork(nn.Module):
         for z in range(Z):
             g = torch.Generator(device=dev)
             g.manual_seed(seed + z)
-            sel = torch.randint(0, 16,      (B, 3, k),      dtype=torch.long, device=dev, generator=g)
-            lut = torch.randint(0, 2,       (B, 3, 2 ** k), dtype=torch.long, device=dev, generator=g)
+            sel = torch.randint(0, 16,      (B, 3, k),      dtype=torch.uint8, device=dev, generator=g)
+            lut = torch.randint(0, 2,       (B, 3, 2 ** k), dtype=torch.uint8, device=dev, generator=g)
             layer_genomes.append(torch.cat([sel, lut], dim=-1))  # [B, 3, k + 2**k]
         return cls(Z, H, W, layer_genomes, k=k)
 
@@ -538,7 +539,7 @@ class Lattice3DNetwork(nn.Module):
         new_genomes = [
             torch.cat([
                 self.layer_sel[z].expand(N, -1, -1),  # [N, 3, k]
-                self.layer_lut[z].expand(N, -1, -1),  # [N, 3, 2**k]
+                self.layer_lut[z].expand(N, -1, -1).to(self.layer_sel.dtype),  # [N, 3, 2**k]
             ], dim=-1).contiguous()                    # [N, 3, k + 2**k]
             for z in range(self.Z)
         ]

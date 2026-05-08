@@ -16,7 +16,7 @@ IN_DIM      = 700
 
 
 def _default_data_root() -> str:
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
 
 
 def dataset_init(

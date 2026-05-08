@@ -1,51 +1,53 @@
 """
-evolution.py — Truncation-selection evolution for 3D Boolean lattice networks.
+evolution.py — Improved (μ+λ) elitist evolution for 3D Boolean lattice networks.
 
-One generation:
-  1. Draw a fresh random batch of `n_train` examples from the data pool.
-  2. Build a Lattice3DNetwork from the current `[B, Z, 3, k + 2**k]` population.
-  3. Evaluate L2 classification loss + accuracy per circuit on that batch.
-  4. Rank by accuracy desc, ties broken by loss asc.
-  5. Survivors  = top half of the population.
-  6. Children   = mutated copies of the survivors.
-  7. Next pop   = survivors ++ children   (length B).
+Improvements over the original truncation-selection approach:
 
-The whole population sees the same batch within a generation (so per-gen
-comparisons are meaningful), but each generation gets a different random
-draw. As a side effect, "best-ever" fitness is no longer monotone: a
-survivor can rank lower next generation purely because the batch changed.
-The final evaluation re-runs on the entire pool so the returned losses /
-accs are a stable ranking.
+  1. (μ+λ) elitism
+       The top `elite_size` genomes are carried forward unchanged each generation.
+       The best solution found so far is never discarded.
 
-Genome layout (Lattice3DNetwork-specific):
-  • genome[..., :k]   = MUX selectors  in [0, POOL_SIZE) — mutation resamples uniformly
-  • genome[..., k:]   = LUT bits        in {0, 1}        — mutation flips the bit
-  Doing a plain bit-flip on the selector indices (as the original 2D version
-  did) would push them out of [0, POOL_SIZE), so we mutate the two halves
-  with their type-appropriate operator.
+  2. Full-pool ranking
+       Fitness is evaluated on the full training pool every generation. This removes
+       per-generation batch noise so parent selection is stable from one generation
+       to the next.
 
-Classification readout:
-  • A fixed list of (y, x) sites on the top layer (z = Z-1), one per class.
-  • logit_c = sum over time of activity at site c, cast to float.
-  • loss   = mean squared error vs one-hot label, averaged over the batch.
-  • pred   = argmax(logits).
+  3. Activity penalties
+       Genomes that produce all-silent (zero spikes) or saturated (mean rate > 0.9)
+       top-layer activity are penalised.  fitness = acc - w_silent*silent_frac
+       - w_sat*sat_frac.  Stops the search from wasting time on degenerate attractors.
 
-Network bits that must NOT drift between generations (distal projections,
-identity bits) are reseeded deterministically from fixed seeds, so we can
-re-instantiate the network every generation cheaply without changing them.
+  4. Uniform crossover
+       Each child is produced by crossing two randomly chosen elite parents (each
+       gene inherited independently with 50% probability) before mutation.  Enables
+       building-block combination across lineages.
+
+  5. Separate mutation rates for SEL and LUT
+       MUX-selector (SEL) mutations are more disruptive than LUT bit-flips because
+       they change *which signal* a node reads.  `sel_mutation_rate` defaults to half
+       of `lut_mutation_rate` to reflect this difference.
+
+Generation lifecycle
+--------------------
+  1. Evaluate all pop_size genomes on the fixed ranking set → fitness = acc - penalties.
+  2. Sort by fitness descending; keep top `elite_size` unchanged.
+  3. Sample `pop_size - elite_size` child pairs from the elites.
+  4. [optional] Uniform crossover between paired parents.
+  5. Mutate children (lut_rate for LUT bits, sel_rate for SEL indices).
+  6. Next population = elites ++ mutated_children.
+
+Genome layout (unchanged):
+  genome[..., :k]   = MUX selectors  in [0, POOL_SIZE)
+  genome[..., k:]   = LUT bits        in {0, 1}
 """
 
 import sys
 from pathlib import Path
 
-# Add the repo root to sys.path so `from src.lattice import ...` works whether
-# this file is launched as a script or imported. We use the package-qualified
-# path (`src.lattice`) because `lattice.py` itself uses a relative import
-# (`from .node import node_forward`) that requires it to be imported as part
-# of the `src` namespace package — same pattern the smoke test uses.
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import torch
+import torch.nn.functional as F
 
 from src.lattice import Lattice3DNetwork
 
@@ -64,13 +66,6 @@ def random_genome_pack(
 ) -> torch.Tensor:
     """Sample a uniformly random initial population.
 
-    Parameters
-    ----------
-    pop_size : int — number of genomes in the population (axis 0)
-    Z, k     : lattice depth and node arity
-    rng      : torch.Generator on `device`
-    device   : output device
-
     Returns
     -------
     [pop_size, Z, 3, k + 2**k] long
@@ -80,11 +75,11 @@ def random_genome_pack(
     lut_size = 2 ** k
     sel = torch.randint(
         0, POOL_SIZE, (pop_size, Z, N_NODES, k),
-        generator=rng, device=device, dtype=torch.long,
+        generator=rng, device=device, dtype=torch.uint8,
     )
     lut = torch.randint(
         0, 2, (pop_size, Z, N_NODES, lut_size),
-        generator=rng, device=device, dtype=torch.long,
+        generator=rng, device=device, dtype=torch.uint8,
     )
     return torch.cat([sel, lut], dim=-1)
 
@@ -94,43 +89,72 @@ def random_genome_pack(
 # ---------------------------------------------------------------------------
 
 def mutate(
-    genomes: torch.Tensor, k: int, mutation_rate: float, rng: torch.Generator,
+    genomes: torch.Tensor,
+    k: int,
+    lut_rate: float,
+    sel_rate: float,
+    rng: torch.Generator,
 ) -> torch.Tensor:
-    """Per-element mutation tailored to the genome layout.
+    """Per-element mutation with separate rates for LUT bits and SEL indices.
 
     Parameters
     ----------
-    genomes       : [B, Z, 3, k + 2**k] long
-    k             : node arity (number of MUX selectors per node)
-    mutation_rate : float in [0, 1] — per-element mutation probability
-    rng           : torch.Generator on the genomes' device
+    genomes  : [B, Z, 3, k + 2**k] long
+    k        : node arity
+    lut_rate : per-bit flip probability for LUT entries
+    sel_rate : per-entry resample probability for MUX selectors (SEL)
+               Lower than lut_rate by default — SEL changes are more disruptive
+               because they rewire which signal a node reads.
+    rng      : torch.Generator on the genomes' device
 
     Returns
     -------
-    mutated : [B, Z, 3, k + 2**k] long — new tensor; original is not modified
-
-    The first k entries along the last axis are MUX selectors and get
-    resampled uniformly in [0, POOL_SIZE) when mutated. The remaining
-    2**k entries are LUT bits and get flipped when mutated.
+    mutated : [B, Z, 3, k + 2**k] long — new tensor; original not modified
     """
-    if not (0.0 <= mutation_rate <= 1.0):
-        raise ValueError(f"mutation_rate must be in [0, 1], got {mutation_rate}")
+    if not (0.0 <= lut_rate <= 1.0):
+        raise ValueError(f"lut_rate must be in [0, 1], got {lut_rate}")
+    if not (0.0 <= sel_rate <= 1.0):
+        raise ValueError(f"sel_rate must be in [0, 1], got {sel_rate}")
 
     sel = genomes[..., :k]
     lut = genomes[..., k:]
     dev = genomes.device
 
-    sel_flip = torch.rand(sel.shape, generator=rng, device=dev) < mutation_rate
+    # SEL: resample uniformly in [0, POOL_SIZE)
+    sel_flip = torch.rand(sel.shape, generator=rng, device=dev) < sel_rate
     sel_new  = torch.randint(
         0, POOL_SIZE, sel.shape,
         generator=rng, device=dev, dtype=sel.dtype,
     )
-    sel_mut  = torch.where(sel_flip, sel_new, sel)
+    sel_mut = torch.where(sel_flip, sel_new, sel)
 
-    lut_flip = torch.rand(lut.shape, generator=rng, device=dev) < mutation_rate
+    # LUT: bit flip
+    lut_flip = torch.rand(lut.shape, generator=rng, device=dev) < lut_rate
     lut_mut  = torch.where(lut_flip, 1 - lut, lut)
 
     return torch.cat([sel_mut, lut_mut], dim=-1)
+
+
+# ---------------------------------------------------------------------------
+# Crossover
+# ---------------------------------------------------------------------------
+
+def crossover(
+    parents_a: torch.Tensor,   # [N, Z, 3, k + 2**k] long
+    parents_b: torch.Tensor,   # [N, Z, 3, k + 2**k] long
+    rng: torch.Generator,
+) -> torch.Tensor:
+    """Uniform crossover between N paired parent genomes.
+
+    Each gene (element) is independently inherited from parent_a or parent_b
+    with equal 50% probability.  Both SEL and LUT genes participate.
+
+    Returns
+    -------
+    children : [N, Z, 3, k + 2**k] long
+    """
+    mask = torch.rand(parents_a.shape, generator=rng, device=parents_a.device) < 0.5
+    return torch.where(mask, parents_a, parents_b)
 
 
 # ---------------------------------------------------------------------------
@@ -147,12 +171,7 @@ def build_lattice(
     use_distal: bool,
     device: torch.device,
 ) -> Lattice3DNetwork:
-    """Construct a Lattice3DNetwork around a packed genome population.
-
-    distal_idx is regenerated from `distal_seed` each call (deterministic),
-    and identity bits from `identity_seed`, so re-building the network
-    every generation does NOT drift the fixed structural bits.
-    """
+    """Construct a Lattice3DNetwork from a packed genome population."""
     layer_genomes = [genome_pack[:, z].contiguous() for z in range(Z)]
     net = Lattice3DNetwork(
         Z, H, W, layer_genomes,
@@ -169,96 +188,283 @@ def build_lattice(
 
 def evaluate(
     net: Lattice3DNetwork,
-    X_batch: torch.Tensor,            # [N, T, H, W] long, binary
-    y_batch: torch.Tensor,            # [N] long
-    output_sites_flat: torch.Tensor,  # [n_classes] long, indices into top-layer H*W
-) -> tuple[torch.Tensor, torch.Tensor]:
+    X_batch: torch.Tensor,         # [N, T, H, W] long, binary
+    y_batch: torch.Tensor,         # [N] long
+    output_sites: torch.Tensor,    # [n_classes, group_size] long
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Score every circuit in the population on every sample of the batch.
-
-    For each sample we broadcast the input across all B genomes, run the
-    lattice for T steps, sum the top-layer activity over time, and read
-    out per-class logits at the fixed output sites. Loss is mean squared
-    error vs one-hot; prediction is argmax.
-
-    Parameters
-    ----------
-    net               : Lattice3DNetwork with B = pop_size
-    X_batch           : [N, T, H, W] long — binary input frames
-    y_batch           : [N] long — class labels
-    output_sites_flat : [n_classes] long — flat (y*W + x) indices on layer Z-1
 
     Returns
     -------
-    losses : [B] float — mean L2 loss across the batch
-    accs   : [B] float — argmax accuracy across the batch
+    accs        : [B] float — argmax accuracy across the batch
+    silent_frac : [B] float — fraction of samples where top-layer fired zero spikes
+    sat_frac    : [B] float — fraction of samples where top-layer mean rate > 0.9
     """
     B = net.B
     N, T, H, W = X_batch.shape
-    n_classes = output_sites_flat.shape[0]
     dev = X_batch.device
 
-    losses  = torch.zeros(B, device=dev)
-    correct = torch.zeros(B, device=dev)
-    target  = torch.zeros(B, n_classes, device=dev)
+    correct      = torch.zeros(B, device=dev)
+    silent_count = torch.zeros(B, device=dev)
+    sat_count    = torch.zeros(B, device=dev)
 
     for n in range(N):
-        seq = X_batch[n:n + 1].expand(B, T, H, W).contiguous()  # [B, T, H, W]
-        traj = net.run(seq)                                      # [B, T, H*W]
-        feats = traj.float().sum(dim=1)                          # [B, H*W]
-        logits = feats[:, output_sites_flat]                     # [B, n_classes]
+        seq    = X_batch[n:n + 1].expand(B, T, H, W).contiguous()
+        traj   = net.run(seq)                                # [B, T, H*W]
 
-        target.zero_()
-        label = int(y_batch[n].item())
-        target[:, label] = 1.0
-
-        loss = ((logits - target) ** 2).mean(dim=1)              # [B]
-        pred = logits.argmax(dim=1)                              # [B]
-
-        losses  += loss
+        # Classification readout
+        feats  = traj.float().sum(dim=1)                     # [B, H*W]
+        logits = feats[:, output_sites].sum(dim=-1)          # [B, n_classes]
+        pred   = logits.argmax(dim=1)
         correct += (pred == y_batch[n]).float()
 
-    return losses / N, correct / N
+        # Activity statistics on the top layer
+        total_spikes = traj.float().sum(dim=(1, 2))          # [B]
+        mean_rate    = traj.float().mean(dim=(1, 2))         # [B]
+        silent_count += (total_spikes == 0).float()
+        sat_count    += (mean_rate > 0.9).float()
+
+    return correct / N, silent_count / N, sat_count / N
 
 
-def class_readout_sites(n_classes: int, H: int, W: int) -> torch.Tensor:
-    """Pick `n_classes` evenly-spaced (y, x) sites on the H×W top layer.
+# ---------------------------------------------------------------------------
+# WTA readout
+# ---------------------------------------------------------------------------
 
-    Sites lie along a single horizontal stripe at y = H // 2, with x
-    distributed uniformly across [0, W-1]. Returned as flat indices
-    `y * W + x` so they can index a flattened readout vector.
+def classify_wta(
+    net: Lattice3DNetwork,
+    X_batch: torch.Tensor,      # [N, T, H, W] long, binary
+    y_batch: torch.Tensor,      # [N] long
+    assignment: torch.Tensor,   # [B, W] long — column-to-class assignment
+    n_classes: int,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Classify a batch using a pre-computed per-genome column assignment.
+
+    Each top-layer column is assigned to one class.  For each sample the
+    logit for class c is the sum of spike counts over all columns assigned
+    to c; prediction is argmax.
+
+    Parameters
+    ----------
+    assignment : [B, W] long — output of evaluate_wta, one class label per column
 
     Returns
     -------
-    flat_idx : [n_classes] long — distinct flat indices into H*W
+    accs        : [B] float
+    silent_frac : [B] float
+    sat_frac    : [B] float
     """
-    if n_classes > W:
-        raise ValueError(
-            f"n_classes={n_classes} exceeds top-layer width W={W}; "
-            f"need a 2-D layout"
-        )
-    y = H // 2
-    xs = torch.linspace(0, W - 1, n_classes).long()
-    return torch.full((n_classes,), y, dtype=torch.long) * W + xs
+    B = net.B
+    N, T, H, W = X_batch.shape
+    dev = X_batch.device
+
+    correct      = torch.zeros(B, device=dev)
+    silent_count = torch.zeros(B, device=dev)
+    sat_count    = torch.zeros(B, device=dev)
+
+    for n in range(N):
+        seq      = X_batch[n:n + 1].expand(B, T, H, W).contiguous()
+        traj     = net.run(seq)                                  # [B, T, H*W]
+        feats    = traj.float().sum(dim=1)                       # [B, H*W]
+        col_feats = feats.reshape(B, H, W).sum(dim=1)           # [B, W]
+
+        logits = torch.zeros(B, n_classes, device=dev)
+        for c in range(n_classes):
+            col_mask = (assignment == c).float()                 # [B, W]
+            logits[:, c] = (col_feats * col_mask).sum(dim=1)
+
+        pred = logits.argmax(dim=1)
+        correct += (pred == y_batch[n]).float()
+
+        total_spikes = traj.float().sum(dim=(1, 2))
+        mean_rate    = traj.float().mean(dim=(1, 2))
+        silent_count += (total_spikes == 0).float()
+        sat_count    += (mean_rate > 0.9).float()
+
+    return correct / N, silent_count / N, sat_count / N
+
+
+def evaluate_wta(
+    net: Lattice3DNetwork,
+    X_batch: torch.Tensor,   # [N, T, H, W] long, binary
+    y_batch: torch.Tensor,   # [N] long
+    n_classes: int,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Score every circuit using a data-driven WTA column assignment.
+
+    Two passes over the batch:
+      Pass 1 — for each genome, compute mean column spike count per class
+               and assign each column to its most-responsive class.
+      Pass 2 — classify every sample using that assignment (via classify_wta).
+
+    Unlike the fixed-stripe readout, the network only needs to fire
+    *differently* for each class somewhere on the top layer; the assignment
+    step discovers where that difference is and exploits it.
+
+    Parameters
+    ----------
+    n_classes : number of output classes
+
+    Returns
+    -------
+    accs        : [B] float
+    silent_frac : [B] float
+    sat_frac    : [B] float
+    assignment  : [B, W] long — column-to-class assignment (reusable for val)
+    """
+    B = net.B
+    N, T, H, W = X_batch.shape
+    dev = X_batch.device
+
+    # --- Pass 1: accumulate per-class column activity → assignment ----------
+    class_col_sums = torch.zeros(B, n_classes, W, device=dev)
+    class_counts   = torch.zeros(n_classes, device=dev)
+
+    for n in range(N):
+        seq      = X_batch[n:n + 1].expand(B, T, H, W).contiguous()
+        traj     = net.run(seq)                                  # [B, T, H*W]
+        col_feats = traj.float().sum(dim=1).reshape(B, H, W).sum(dim=1)  # [B, W]
+
+        lbl = int(y_batch[n])
+        class_col_sums[:, lbl, :] += col_feats
+        class_counts[lbl] += 1
+
+    # Normalise by per-class sample count, then argmax over classes
+    class_col_means = class_col_sums / class_counts.clamp(min=1)[None, :, None]
+    assignment = class_col_means.argmax(dim=1)                   # [B, W]
+
+    # --- Pass 2: classify using the computed assignment --------------------
+    accs, silent_frac, sat_frac = classify_wta(
+        net, X_batch, y_batch, assignment, n_classes
+    )
+
+    return accs, silent_frac, sat_frac, assignment
+
+
+def _evaluate_wta_parallel(
+    genomes: torch.Tensor,       # [B, Z, 3, k + 2**k]
+    X_batch: torch.Tensor,       # [N, T, H, W] long binary
+    y_batch: torch.Tensor,       # [N] long
+    n_classes: int,
+    Z: int, H: int, W: int, k: int,
+    distal_seed: int,
+    identity_seed: int,
+    use_identity: bool,
+    use_positional_cues: bool,
+    use_distal: bool,
+    device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Score all B genomes on all N samples in a single forward pass.
+
+    Instead of looping over N samples, tiles the B genomes N times and stacks
+    all N inputs into one big batch of size N×B.  One net.run() call replaces
+    the N-iteration Python loop, fully saturating the GPU for large N×B.
+
+    Memory scales as N×B×Z×H×W — ensure sufficient VRAM before enabling.
+    Use `parallel_samples: false` in config if you hit OOM.
+
+    Returns
+    -------
+    accs        : [B] float
+    silent_frac : [B] float
+    sat_frac    : [B] float
+    assignment  : [B, W] long
+    """
+    B = genomes.shape[0]
+    N, T, H_, W_ = X_batch.shape
+    NB = N * B
+    G  = genomes.shape[-1]   # k + 2**k
+
+    # ── Tile genomes and expand input ────────────────────────────────────────
+    # Layout: element n*B + b  →  genome b on sample n
+    tiled_genomes = (
+        genomes.unsqueeze(0)            # [1, B, Z, 3, G]
+        .expand(N, -1, -1, -1, -1)     # [N, B, Z, 3, G]
+        .reshape(NB, Z, N_NODES, G)    # [NB, Z, 3, G]
+        .contiguous()
+    )
+    expanded_X = (
+        X_batch.unsqueeze(1)            # [N, 1, T, H, W]
+        .expand(-1, B, -1, -1, -1)     # [N, B, T, H, W]
+        .reshape(NB, T, H_, W_)        # [NB, T, H, W]
+        .contiguous()
+    )
+
+    # ── Single forward pass ──────────────────────────────────────────────────
+    big_net = build_lattice(
+        tiled_genomes, Z, H_, W_, k,
+        distal_seed=distal_seed,
+        identity_seed=identity_seed,
+        use_identity=use_identity,
+        use_positional_cues=use_positional_cues,
+        use_distal=use_distal,
+        device=device,
+    )
+    traj = big_net.run(expanded_X)                              # [NB, T, H*W]
+    traj_nb = traj.reshape(N, B, T, H_ * W_)                   # [N, B, T, H*W]
+
+    # ── Column features: sum over T, then sum over H (rows) ─────────────────
+    col_feats = (
+        traj_nb.float()
+        .sum(dim=2)                    # sum over T → [N, B, H*W]
+        .reshape(N, B, H_, W_)
+        .sum(dim=2)                    # sum over H → [N, B, W]
+    )
+
+    # ── WTA assignment ───────────────────────────────────────────────────────
+    y_oh = F.one_hot(y_batch, n_classes).float()               # [N, n_classes]
+    class_col_sums  = torch.einsum("nc,nbw->bcw", y_oh, col_feats)  # [B, n_classes, W]
+    class_counts    = y_oh.sum(0).clamp(min=1)                      # [n_classes]
+    class_col_means = class_col_sums / class_counts[None, :, None]
+    assignment      = class_col_means.argmax(dim=1)                 # [B, W]
+
+    # ── Classification using the WTA assignment ──────────────────────────────
+    asgn_oh = F.one_hot(assignment, n_classes).float()          # [B, W, n_classes]
+    logits  = torch.einsum("nbw,bwc->nbc", col_feats, asgn_oh) # [N, B, n_classes]
+    pred    = logits.argmax(dim=2)                               # [N, B]
+    accs    = (pred == y_batch[:, None]).float().mean(dim=0)    # [B]
+
+    # ── Activity statistics ──────────────────────────────────────────────────
+    total_spikes = traj_nb.float().sum(dim=(2, 3))              # [N, B]
+    mean_rate    = traj_nb.float().mean(dim=(2, 3))             # [N, B]
+    silent_frac  = (total_spikes == 0).float().mean(dim=0)      # [B]
+    sat_frac     = (mean_rate > 0.9).float().mean(dim=0)        # [B]
+
+    return accs, silent_frac, sat_frac, assignment
+
+
+def class_readout_sites(n_classes: int, H: int, W: int) -> torch.Tensor:
+    """Divide the H×W top layer into n_classes equal vertical stripes.
+
+    Returns
+    -------
+    sites : [n_classes, H * (W // n_classes)] long
+    """
+    if W % n_classes != 0:
+        raise ValueError(f"W={W} is not divisible by n_classes={n_classes}")
+    group_w = W // n_classes
+    ys = torch.arange(H)
+    sites = []
+    for c in range(n_classes):
+        xs = torch.arange(c * group_w, (c + 1) * group_w)
+        yy, xx = torch.meshgrid(ys, xs, indexing="ij")
+        sites.append((yy * W + xx).reshape(-1))
+    return torch.stack(sites, dim=0)
 
 
 # ---------------------------------------------------------------------------
-# Selection helper
+# Fitness
 # ---------------------------------------------------------------------------
 
-def _rank_by_acc_then_loss(
-    accs: torch.Tensor, losses: torch.Tensor,
+def _compute_fitness(
+    accs: torch.Tensor,
+    silent_frac: torch.Tensor,
+    sat_frac: torch.Tensor,
+    w_silent: float,
+    w_sat: float,
 ) -> torch.Tensor:
-    """Return the permutation that sorts by accuracy DESC, ties by loss ASC.
-
-    Equivalent to numpy.lexsort((losses, -accs)). Implemented with two
-    stable sorts: first by the secondary key (loss asc), then by the
-    primary key (acc desc). torch.argsort(..., stable=True) preserves the
-    relative order of ties, so the secondary order survives the second pass.
-    """
-    order_secondary = torch.argsort(losses, stable=True)
-    accs_s = accs[order_secondary]
-    order_primary = torch.argsort(-accs_s, stable=True)
-    return order_secondary[order_primary]
+    """fitness = accuracy - w_silent * silent_frac - w_sat * sat_frac"""
+    return accs - w_silent * silent_frac - w_sat * sat_frac
 
 
 # ---------------------------------------------------------------------------
@@ -269,114 +475,237 @@ def evolve(
     pop_size: int,
     n_generations: int,
     Z: int, H: int, W: int, k: int,
-    X_pool: torch.Tensor,             # [P, T, H, W] long binary
-    y_pool: torch.Tensor,             # [P] long
-    n_train: int,
-    output_sites_flat: torch.Tensor,  # [n_classes] long
-    mutation_rate: float,
-    seed: int,
-    use_identity: bool,
-    use_positional_cues: bool,
-    use_distal: bool,
-    distal_seed: int,
-    identity_seed: int,
-    device: torch.device,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, list[dict]]:
-    """Run truncation-selection evolution for `n_generations` generations.
+    X_pool: torch.Tensor,          # [P, T, H, W] long binary — training pool
+    y_pool: torch.Tensor,          # [P] long
+    n_classes: int,                # number of output classes (used by WTA readout)
+    mutation_rate: float = 0.02,   # backward-compat default; overridden by lut/sel rates
+    lut_mutation_rate: float = None,
+    sel_mutation_rate: float = None,
+    elite_size: int = 20,
+    penalty_weights: tuple = (0.3, 0.3),
+    use_crossover: bool = True,
+    X_val: torch.Tensor = None,    # optional held-out set — logged per generation but NOT used for ranking
+    y_val: torch.Tensor = None,
+    stagnation_patience: int = 10,
+    stagnation_inject_frac: float = 0.3,
+    parallel_samples: bool = False,
+    seed: int = 42,
+    use_identity: bool = True,
+    use_positional_cues: bool = False,
+    use_distal: bool = True,
+    distal_seed: int = 0,
+    identity_seed: int = 0,
+    device: torch.device = None,
+) -> tuple[torch.Tensor, torch.Tensor, list[dict]]:
+    """Run (μ+λ) elitist evolution for `n_generations` generations.
 
-    Each generation draws a fresh random subset of `n_train` examples from
-    `(X_pool, y_pool)` (without replacement, within the generation) and
-    evaluates the entire population on that subset. The final ranking is
-    recomputed on the full pool.
+    Each generation ranks genomes on the full X_pool. This keeps selection
+    pressure consistent across generations instead of introducing mini-batch noise.
+    Exploration comes from mutation, crossover, elitism, and stagnation injection.
+
+    If X_val / y_val are provided they are evaluated each generation for
+    observability (logged in history as val_acc) but play no role in selection.
 
     Parameters
     ----------
-    pop_size                       : even int >= 2
-    n_generations                  : int >= 1
-    Z, H, W, k                     : lattice dimensions and node arity
-    X_pool                         : [P, T, H, W] long binary
-    y_pool                         : [P] long — class labels in [0, n_classes)
-    n_train                        : int — examples sampled per generation
-    output_sites_flat              : [n_classes] long — top-layer flat indices
-    mutation_rate                  : float — per-element mutation probability
-    seed                           : int — RNG seed for genomes / mutation / batch
+    pop_size          : even int >= 2
+    n_generations     : int >= 1
+    Z, H, W, k        : lattice dimensions and node arity
+    X_pool            : [P, T, H, W] long binary — training pool
+    y_pool            : [P] long
+    n_classes         : number of output classes; drives the WTA column assignment
+    mutation_rate     : backward-compat; sets both lut and sel rates unless overridden
+    lut_mutation_rate : per-bit LUT flip probability (default: mutation_rate)
+    sel_mutation_rate : per-entry SEL resample probability (default: mutation_rate * 0.5)
+    elite_size             : top genomes kept unchanged each generation (~20% of pop_size)
+    penalty_weights        : (w_silent, w_saturated)
+    use_crossover          : if True, cross elite pairs before mutation
+    X_val / y_val          : optional held-out set; logged per generation, not used for ranking
+    stagnation_patience    : generations without improvement before injecting diversity
+    stagnation_inject_frac : fraction of population replaced with fresh random genomes
+                             on stagnation; bottom-ranked genomes are replaced first
+    parallel_samples       : if True, run the full training pool × pop_size genomes in one
+                             forward pass (faster on GPU, but uses P×B times more VRAM)
+    seed                   : RNG seed
     use_identity, use_positional_cues, use_distal : ablation flags
-    distal_seed, identity_seed     : seeds for fixed structural network bits
-    device                         : torch device for genomes / network / data
+    distal_seed, identity_seed : seeds for fixed structural bits
+    device            : torch device
 
     Returns
     -------
-    final_genomes : [pop_size, Z, 3, k + 2**k] long — sorted best→worst on full pool
-    final_losses  : [pop_size] float — pool loss aligned with final_genomes
-    final_accs    : [pop_size] float — pool acc  aligned with final_genomes
-    history       : list[dict] — per-generation metrics on that gen's batch
+    final_genomes    : [pop_size, Z, 3, k + 2**k] sorted best→worst on full pool
+    final_accs       : [pop_size] float
+    history          : list[dict] — per-generation metrics
+    best_assignment  : [1, W] long — WTA column assignment of the best genome,
+                       computed on the full training pool; pass to classify_wta
+                       for held-out evaluation
     """
     if pop_size < 2 or pop_size % 2 != 0:
         raise ValueError(f"pop_size must be an even integer >= 2, got {pop_size}")
     if n_generations < 1:
         raise ValueError(f"n_generations must be >= 1, got {n_generations}")
+    if not (1 <= elite_size < pop_size):
+        raise ValueError(f"elite_size must be in [1, pop_size), got {elite_size}")
     if X_pool.dim() != 4:
-        raise ValueError(
-            f"X_pool must be [P, T, H, W]; got shape {tuple(X_pool.shape)}"
-        )
+        raise ValueError(f"X_pool must be [P, T, H, W]; got shape {tuple(X_pool.shape)}")
     P, T, Hin, Win = X_pool.shape
     if Hin != H or Win != W:
-        raise ValueError(
-            f"X_pool spatial dims ({Hin},{Win}) != lattice ({H},{W})"
-        )
+        raise ValueError(f"X_pool spatial dims ({Hin},{Win}) != lattice ({H},{W})")
     if y_pool.shape[0] != P:
-        raise ValueError(
-            f"X_pool and y_pool must agree on first axis; got {P} vs {y_pool.shape[0]}"
-        )
-    if not (1 <= n_train <= P):
-        raise ValueError(f"n_train must be in [1, {P}], got {n_train}")
+        raise ValueError(f"X_pool and y_pool must agree on axis 0; got {P} vs {y_pool.shape[0]}")
+    if (X_val is None) != (y_val is None):
+        raise ValueError("X_val and y_val must both be provided or both be None")
 
-    rng = torch.Generator(device=device)
+    # Resolve mutation rates
+    lut_rate = lut_mutation_rate if lut_mutation_rate is not None else mutation_rate
+    sel_rate = sel_mutation_rate if sel_mutation_rate is not None else mutation_rate * 0.5
+    w_silent, w_sat = penalty_weights
+
+    dev = device if device is not None else X_pool.device
+    rng = torch.Generator(device=dev)
     rng.manual_seed(seed)
-    half = pop_size // 2
 
-    genomes = random_genome_pack(pop_size, Z, k, rng, device)
-    output_sites_flat = output_sites_flat.to(device)
+    genomes    = random_genome_pack(pop_size, Z, k, rng, dev)
+    n_children = pop_size - elite_size
+    n_inject     = max(1, int(pop_size * stagnation_inject_frac))
+
+    val_available = X_val is not None
+    if val_available:
+        X_val = X_val.to(dev)
+        y_val = y_val.to(dev)
+
+    print(f"Ranking: full train pool n={P} | elite={elite_size} | "
+          f"crossover={'on' if use_crossover else 'off'} | "
+          f"lut_rate={lut_rate} sel_rate={sel_rate} | "
+          f"penalty w_silent={w_silent} w_sat={w_sat} | "
+          f"stagnation patience={stagnation_patience} inject={n_inject} | "
+          f"parallel_samples={'on' if parallel_samples else 'off'} | "
+          f"val logging={'on' if val_available else 'off'}")
+
     history: list[dict] = []
+    stagnation_count  = 0
+    best_fitness_ever = -float("inf")
 
     for gen in range(n_generations):
-        idx = torch.randperm(P, generator=rng, device=device)[:n_train]
-        X_batch = X_pool[idx]
-        y_batch = y_pool[idx]
+        # Rank on the full training pool every generation
+        X_batch = X_pool
+        y_batch = y_pool
 
-        net = build_lattice(
-            genomes, Z, H, W, k,
-            distal_seed=distal_seed,
-            identity_seed=identity_seed,
-            use_identity=use_identity,
-            use_positional_cues=use_positional_cues,
-            use_distal=use_distal,
-            device=device,
-        )
-        losses, accs = evaluate(net, X_batch, y_batch, output_sites_flat)
+        # Rank on training pool using WTA readout
+        if parallel_samples:
+            # All N samples × B genomes in one forward pass
+            accs, silent_frac, sat_frac, assignments = _evaluate_wta_parallel(
+                genomes, X_batch, y_batch, n_classes,
+                Z, H, W, k,
+                distal_seed=distal_seed,
+                identity_seed=identity_seed,
+                use_identity=use_identity,
+                use_positional_cues=use_positional_cues,
+                use_distal=use_distal,
+                device=dev,
+            )
+        else:
+            net = build_lattice(
+                genomes, Z, H, W, k,
+                distal_seed=distal_seed,
+                identity_seed=identity_seed,
+                use_identity=use_identity,
+                use_positional_cues=use_positional_cues,
+                use_distal=use_distal,
+                device=dev,
+            )
+            accs, silent_frac, sat_frac, assignments = evaluate_wta(
+                net, X_batch, y_batch, n_classes
+            )
+        fitness = _compute_fitness(accs, silent_frac, sat_frac, w_silent, w_sat)
 
-        order = _rank_by_acc_then_loss(accs, losses)
-        genomes = genomes[order]
-        losses  = losses[order]
-        accs    = accs[order]
+        # Sort best → worst
+        order       = torch.argsort(-fitness, stable=True)
+        genomes     = genomes[order]
+        fitness     = fitness[order]
+        accs        = accs[order]
+        silent_frac = silent_frac[order]
+        sat_frac    = sat_frac[order]
+        assignments = assignments[order]
 
-        history.append({
-            "gen": gen,
-            "best_acc": float(accs[0]),
-            "mean_acc": float(accs.mean()),
-            "loss_at_best_acc": float(losses[0]),
-            "mean_loss": float(losses.mean()),
-            "min_loss": float(losses.min()),
-        })
+        # ---- Stagnation detection -------------------------------------------
+        injected = False
+        if float(fitness[0]) > best_fitness_ever + 1e-6:
+            best_fitness_ever = float(fitness[0])
+            stagnation_count  = 0
+        else:
+            stagnation_count += 1
+
+        if stagnation_count >= stagnation_patience:
+            # Replace bottom n_inject genomes with fresh random individuals
+            fresh   = random_genome_pack(n_inject, Z, k, rng, dev)
+            genomes = torch.cat([genomes[:pop_size - n_inject], fresh], dim=0)
+            stagnation_count = 0
+            injected = True
+
+        # Optional: evaluate best genome on held-out val set for observability.
+        # Re-use the assignment computed on this generation's training batch.
+        val_acc = None
+        if val_available:
+            val_net = build_lattice(
+                genomes[0:1], Z, H, W, k,
+                distal_seed=distal_seed,
+                identity_seed=identity_seed,
+                use_identity=use_identity,
+                use_positional_cues=use_positional_cues,
+                use_distal=use_distal,
+                device=dev,
+            )
+            val_acc = float(
+                classify_wta(val_net, X_val, y_val, assignments[0:1], n_classes)[0]
+            )
+
+        record = {
+            "gen":              gen,
+            "best_acc":         float(accs[0]),
+            "mean_acc":         float(accs.mean()),
+            "best_fitness":     float(fitness[0]),
+            "mean_fitness":     float(fitness.mean()),
+            "best_silent_frac": float(silent_frac[0]),
+            "best_sat_frac":    float(sat_frac[0]),
+            "injected":         injected,
+        }
+        if val_available:
+            record["val_acc"] = val_acc
+        history.append(record)
+
+        val_str = f" | val={val_acc:.1%}" if val_available else ""
         print(
-            f"gen {gen:4d} | acc best={float(accs[0]):.1%} mean={float(accs.mean()):.1%} "
-            f"| loss={float(losses[0]):.4f} mean={float(losses.mean()):.4f}"
+            f"gen {gen:4d} | "
+            f"train best={float(accs[0]):.1%} mean={float(accs.mean()):.1%}"
+            f"{val_str} | "
+            f"fit={float(fitness[0]):.3f} | "
+            f"silent={float(silent_frac[0]):.2f} sat={float(sat_frac[0]):.2f}"
+            + (" [inject]" if injected else "")
         )
 
-        survivors = genomes[:half]
-        children  = mutate(survivors, k, mutation_rate, rng)
-        genomes   = torch.cat([survivors, children], dim=0)
+        # ---- (μ+λ) selection ------------------------------------------------
+        # Elites: top elite_size genomes pass through unchanged
+        elites = genomes[:elite_size]                           # [elite_size, Z, 3, G]
 
+        # Sample parent pairs for children (with replacement from elites)
+        idx_a    = torch.randint(0, elite_size, (n_children,), generator=rng, device=dev)
+        idx_b    = torch.randint(0, elite_size, (n_children,), generator=rng, device=dev)
+        parents_a = elites[idx_a]                              # [n_children, Z, 3, G]
+        parents_b = elites[idx_b]
+
+        # Crossover then mutate
+        if use_crossover:
+            children = crossover(parents_a, parents_b, rng)
+        else:
+            children = parents_a.clone()
+
+        children = mutate(children, k, lut_rate, sel_rate, rng)
+
+        # New population: elites first (sorted), then children
+        genomes = torch.cat([elites, children], dim=0)
+
+    # Final evaluation on the full training pool
     final_net = build_lattice(
         genomes, Z, H, W, k,
         distal_seed=distal_seed,
@@ -384,12 +713,15 @@ def evolve(
         use_identity=use_identity,
         use_positional_cues=use_positional_cues,
         use_distal=use_distal,
-        device=device,
+        device=dev,
     )
-    final_losses, final_accs = evaluate(final_net, X_pool, y_pool, output_sites_flat)
-    order = _rank_by_acc_then_loss(final_accs, final_losses)
+    final_accs, _, _, final_assignments = evaluate_wta(
+        final_net, X_pool, y_pool, n_classes
+    )
+    order = torch.argsort(-final_accs, stable=True)
+    best_assignment = final_assignments[order[0]:order[0] + 1]  # [1, W]
 
-    return genomes[order], final_losses[order], final_accs[order], history
+    return genomes[order], final_accs[order], history, best_assignment
 
 
 # ---------------------------------------------------------------------------
@@ -407,9 +739,13 @@ if __name__ == "__main__":
     N_TIME_BINS          = 10
     TASK                 = "10class"
     N_CLASSES            = 10
-    MUTATION_RATE        = 0.02
-    N_POOL_PER_CLASS     = 20      # train pool size = N_POOL_PER_CLASS * N_CLASSES
-    N_TRAIN              = 50      # fresh random subset evaluated each generation
+    LUT_MUTATION_RATE    = 0.02
+    SEL_MUTATION_RATE    = 0.01
+    ELITE_SIZE           = 4
+    PENALTY_WEIGHTS      = (0.3, 0.3)
+    USE_CROSSOVER        = True
+    N_POOL_PER_CLASS     = 20
+    VAL_FRACTION         = 0.2
     SEED                 = 42
     DISTAL_SEED          = 0
     IDENTITY_SEED        = 0
@@ -431,8 +767,9 @@ if __name__ == "__main__":
     print(
         f"Population: {POP_SIZE} | Generations: {N_GENERATIONS} | "
         f"Z={Z} H={H} W={W} k={K} T={N_TIME_BINS} | task={TASK} | "
-        f"mutation={MUTATION_RATE} | pool/class={N_POOL_PER_CLASS} batch_per_gen={N_TRAIN} | "
-        f"device={DEVICE}"
+        f"lut_rate={LUT_MUTATION_RATE} sel_rate={SEL_MUTATION_RATE} | "
+        f"elite={ELITE_SIZE} crossover={USE_CROSSOVER} | "
+        f"pool/class={N_POOL_PER_CLASS} | device={DEVICE}"
     )
 
     X_train, y_train, _, _ = load_nmnist(
@@ -447,30 +784,38 @@ if __name__ == "__main__":
         first_saccade_only=True,
     )
 
-    # X_train is [P, T, F=H*W]; reshape to [P, T, H, W] for the lattice.
-    X_pool = X_train.reshape(-1, N_TIME_BINS, H, W).to(DEVICE)
-    y_pool = y_train.to(DEVICE)
+    X_all = X_train.reshape(-1, N_TIME_BINS, H, W)
+    n_total = X_all.shape[0]
+    n_pool  = int((1 - VAL_FRACTION) * n_total)
+    perm    = torch.randperm(n_total, generator=torch.Generator().manual_seed(SEED))
+    X_pool  = X_all[perm[:n_pool]].to(DEVICE)
+    y_pool  = y_train[perm[:n_pool]].to(DEVICE)
+    X_val   = X_all[perm[n_pool:]].to(DEVICE)
+    y_val   = y_train[perm[n_pool:]].to(DEVICE)
+
     print(
-        f"Loaded N-MNIST pool: X={tuple(X_pool.shape)}  "
+        f"Loaded N-MNIST pool: X_pool={tuple(X_pool.shape)} X_val={tuple(X_val.shape)}  "
         f"active fraction={float(X_pool.float().mean()):.3f}"
     )
 
     class_counts = torch.bincount(y_pool, minlength=N_CLASSES)
     majority_acc = float(class_counts.max() / class_counts.sum())
-    print(f"Majority-class baseline (always predict most common): {majority_acc:.1%}")
+    print(f"Majority-class baseline: {majority_acc:.1%}\n")
 
-    output_sites_flat = class_readout_sites(N_CLASSES, H, W).to(DEVICE)
-    print(f"Output sites (flat indices on top layer): {output_sites_flat.tolist()}\n")
-
-    final_genomes, final_losses, final_accs, history = evolve(
+    final_genomes, final_accs, history, best_assignment = evolve(
         pop_size=POP_SIZE,
         n_generations=N_GENERATIONS,
         Z=Z, H=H, W=W, k=K,
         X_pool=X_pool,
         y_pool=y_pool,
-        n_train=N_TRAIN,
-        output_sites_flat=output_sites_flat,
-        mutation_rate=MUTATION_RATE,
+        n_classes=N_CLASSES,
+        lut_mutation_rate=LUT_MUTATION_RATE,
+        sel_mutation_rate=SEL_MUTATION_RATE,
+        elite_size=ELITE_SIZE,
+        penalty_weights=PENALTY_WEIGHTS,
+        use_crossover=USE_CROSSOVER,
+        X_val=X_val,
+        y_val=y_val,
         seed=SEED,
         use_identity=USE_IDENTITY,
         use_positional_cues=USE_POSITIONAL_CUES,
@@ -480,33 +825,39 @@ if __name__ == "__main__":
         device=DEVICE,
     )
 
+    # Val accuracy using the best genome's WTA assignment
+    best_net = build_lattice(
+        final_genomes[0:1], Z, H, W, K,
+        distal_seed=DISTAL_SEED, identity_seed=IDENTITY_SEED,
+        use_identity=USE_IDENTITY, use_positional_cues=USE_POSITIONAL_CUES,
+        use_distal=USE_DISTAL, device=DEVICE,
+    )
+    val_acc = float(classify_wta(best_net, X_val, y_val, best_assignment, N_CLASSES)[0])
+
     g0 = history[0]
-    pool_n = X_pool.shape[0]
     print(
         f"\n=== Done ===\n"
-        f"  initial batch  : acc best={g0['best_acc']:.1%}  mean={g0['mean_acc']:.1%}  "
-        f"| loss={g0['loss_at_best_acc']:.4f}\n"
-        f"  final on pool  : acc best={float(final_accs[0]):.1%}  "
-        f"mean={float(final_accs.mean()):.1%}  "
-        f"| loss={float(final_losses[0]):.4f}  (pool size={pool_n})\n"
-        f"  baselines : majority-class={majority_acc:.1%}  "
-        f"random={1.0 / N_CLASSES:.1%}  perfect=100.0%"
+        f"  initial train : acc best={g0['best_acc']:.1%}  mean={g0['mean_acc']:.1%}\n"
+        f"  final on pool : acc best={float(final_accs[0]):.1%}  "
+        f"mean={float(final_accs.mean()):.1%}  (pool size={X_pool.shape[0]})\n"
+        f"  val (held-out): acc={val_acc:.1%}  (n={X_val.shape[0]})\n"
+        f"  baselines     : majority={majority_acc:.1%}  "
+        f"random={1.0 / N_CLASSES:.1%}  perfect=100%"
     )
 
-    # Save the best genome + structural metadata so a viewer/server can
-    # rebuild the exact same network without re-running evolution.
     torch.save({
         "genome":              final_genomes[0].cpu(),
+        "best_assignment":     best_assignment.cpu(),
         "Z": Z, "H": H, "W": W, "k": K,
         "n_time_bins":         N_TIME_BINS,
         "task":                TASK,
-        "output_sites_flat":   output_sites_flat.cpu(),
+        "n_classes":           N_CLASSES,
         "distal_seed":         DISTAL_SEED,
         "identity_seed":       IDENTITY_SEED,
         "use_identity":        USE_IDENTITY,
         "use_positional_cues": USE_POSITIONAL_CUES,
         "use_distal":          USE_DISTAL,
-        "train_loss":          float(final_losses[0]),
         "train_acc":           float(final_accs[0]),
+        "val_acc":             val_acc,
     }, CHECKPOINT_PATH)
     print(f"Saved {CHECKPOINT_PATH}")

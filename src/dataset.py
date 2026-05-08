@@ -27,6 +27,8 @@ import tonic.transforms as T_tonic
 
 SENSOR_SIZE = tonic.datasets.NMNIST.sensor_size   # (34, 34, 2)  — (x, y, polarity)
 
+_DEFAULT_DATA_ROOT = str(pathlib.Path(__file__).resolve().parent.parent / "datasets" / "NMNIST" / "data")
+
 
 # ---------------------------------------------------------------------------
 # Transform pipeline
@@ -198,7 +200,7 @@ def n_classes_for_task(task: str) -> int:
 
 
 def load_nmnist(
-    data_root: str,
+    data_root: str = _DEFAULT_DATA_ROOT,
     task: str = "7_vs_rest",
     n_time_bins: int = 10,
     grid_size: Optional[int] = 16,

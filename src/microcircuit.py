@@ -26,8 +26,8 @@ class Microcircuit(nn.Module):
             )
 
         self.k = k
-        self.register_buffer("sel", sel.long())
-        self.register_buffer("lut", lut.long())
+        self.register_buffer("sel", sel.to(torch.uint8))
+        self.register_buffer("lut", lut.bool())
 
     # ------------------------------------------------------------------
     # Forward
@@ -51,7 +51,7 @@ class Microcircuit(nn.Module):
 
         O_raw = node_forward(self.sel[:, 2:3], self.lut[:, 2:3], O_pool)  # [B, 1]
 
-        o = O_raw * (1 - I)
+        o = O_raw & (~I)
         return o  # [B, 1]
 
     # ------------------------------------------------------------------
@@ -62,8 +62,8 @@ class Microcircuit(nn.Module):
     def random(cls, B: int, k: int = 3, pool_size: int = 16,
                device: torch.device = None) -> "Microcircuit":
         dev = device or torch.device("cpu")
-        sel = torch.randint(0, pool_size, (B, 3, k), dtype=torch.long, device=dev)
-        lut = torch.randint(0, 2, (B, 3, 2 ** k), dtype=torch.long, device=dev)
+        sel = torch.randint(0, pool_size, (B, 3, k), dtype=torch.uint8, device=dev)
+        lut = torch.randint(0, 2, (B, 3, 2 ** k), dtype=torch.uint8, device=dev)
         return cls(sel, lut)
 
     @classmethod
@@ -83,4 +83,4 @@ class Microcircuit(nn.Module):
 
     def to_genome(self) -> torch.Tensor:
         """Export packed genome [B, 3, k + 2**k]. Inverse of from_genome."""
-        return torch.cat([self.sel, self.lut], dim=2)
+        return torch.cat([self.sel, self.lut.to(torch.uint8)], dim=2)

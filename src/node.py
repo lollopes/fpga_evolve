@@ -39,7 +39,7 @@ def node_forward(
     BN = B * N
 
     # Flatten (B, N) into one dimension so we can use gather directly.
-    flat_sel = sel.reshape(BN, k)           # [BN, k]
+    flat_sel = sel.reshape(BN, k).long()    # [BN, k] gather requires Long indices
     flat_lut = lut.reshape(BN, 2 ** k)     # [BN, 2**k]
 
     # Expand pool from [B, P] to [BN, P] — each of the N nodes per
@@ -54,7 +54,7 @@ def node_forward(
     inputs = flat_pool.gather(1, flat_sel)  # [BN, k]
 
     # Build k-bit LUT address (MSB = bit 0 of inputs).
-    addr = sum(inputs[:, j] << (k - 1 - j) for j in range(k))  # [BN]
+    addr = sum(inputs[:, j].long() << (k - 1 - j) for j in range(k))  # [BN]
     addr = addr.unsqueeze(1)  # [BN, 1]
 
     # LUT lookup: gather the single output bit at the computed address.

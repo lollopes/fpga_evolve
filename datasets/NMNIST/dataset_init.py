@@ -17,7 +17,7 @@ IN_DIM      = 34 * 34 * 2                          # 2312 after flatten
 
 
 def _default_data_root() -> str:
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "data"))
 
 
 def dataset_init(
