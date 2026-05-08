@@ -118,9 +118,10 @@
   /* Input grid */
   .input-grid {
     display: grid; gap: 2px;
+    width: fit-content;
   }
   .input-cell {
-    width: 100%; aspect-ratio: 1 / 1;
+    width: 30px; height: 30px;
     background: #1a1a22; border: 1px solid var(--border); border-radius: 2px;
     cursor: pointer;
   }
@@ -131,7 +132,10 @@
   }
 
   /* Bit / selector grids */
-  .layer-block { margin-bottom: 8px; }
+  .layer-block { margin-bottom: 0; flex: 0 0 auto; }
+  #lut-bits, #sel-bits {
+    display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+  }
   .layer-title {
     color: var(--muted); font-size: 9.5px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.08em;
@@ -639,7 +643,7 @@
 
   // Input grid
   const inputGrid = document.getElementById('input-grid');
-  inputGrid.style.gridTemplateColumns = `repeat(${W}, 1fr)`;
+  inputGrid.style.gridTemplateColumns = `repeat(${W}, 30px)`;
   const inputCells = new Array(H * W);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {

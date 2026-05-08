@@ -46,6 +46,19 @@
   }
   .meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
   .meta b { color: var(--text); }
+  #live-badge {
+    margin-left: auto; flex: 0 0 auto;
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  #live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #4b5563;
+    flex: 0 0 auto; transition: background 0.2s;
+  }
+  #live-dot.on  { background: #4ade80; animation: blink 1.4s ease-in-out infinite; }
+  #live-dot.done { background: #60a5fa; animation: none; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
   /* ── 3D network ───────────────────────────────────── */
   #network-wrap {
@@ -122,6 +135,7 @@
   <div id="header">
     <h1>EVOLUTION</h1>
     <div id="meta-row"></div>
+    <div id="live-badge"><div id="live-dot"></div><span id="live-label">—</span></div>
   </div>
 
   <div id="network-wrap">
@@ -164,28 +178,23 @@
 <script src="evo_data.js"></script>
 <script>
 (() => {
-  const D = window.EVO_DATA;
-  if (!D) {
-    document.body.innerHTML =
-      '<div class="err">evo_data.js not found.<br>' +
-      'Run: <b>python viewer/evo.py --experiment experiments/YOUR_EXP</b></div>';
-    return;
-  }
-
-  const S    = D.scene;
-  const hist = D.history || [];
+  const D = window.EVO_DATA || null;
+  const S    = D ? D.scene : null;
+  const hist = D ? (D.history || []) : [];
 
   // ── Header ──────────────────────────────────────────────────────────────
   const metaRow = document.getElementById('meta-row');
-  const items = [];
-  if (D.experiment) items.push(['exp',   D.experiment]);
-  if (D.task)       items.push(['task',  D.task]);
-  if (D.train_acc != null) items.push(['train', `${(D.train_acc*100).toFixed(1)}%`]);
-  if (D.val_acc   != null) items.push(['val',   `${(D.val_acc  *100).toFixed(1)}%`]);
-  if (S) items.push(['Z',S.Z],['H',S.H],['W',S.W],['k',S.k]);
-  if (hist.length) items.push(['gens', hist.length]);
-  metaRow.innerHTML = items.map(([k,v]) =>
-    `<span class="meta">${k}=<b>${v}</b></span>`).join('&nbsp;&nbsp;');
+  if (D) {
+    const items = [];
+    if (D.experiment) items.push(['exp',   D.experiment]);
+    if (D.task)       items.push(['task',  D.task]);
+    if (D.train_acc != null) items.push(['train', `${(D.train_acc*100).toFixed(1)}%`]);
+    if (D.val_acc   != null) items.push(['val',   `${(D.val_acc  *100).toFixed(1)}%`]);
+    if (S) items.push(['Z',S.Z],['H',S.H],['W',S.W],['k',S.k]);
+    if (hist.length) items.push(['gens', hist.length]);
+    metaRow.innerHTML = items.map(([k,v]) =>
+      `<span class="meta">${k}=<b>${v}</b></span>`).join('&nbsp;&nbsp;');
+  }
 
   // ── Pool source metadata (matches src/lattice.py pool layout) ──────────
   const POOL_LABELS = [
@@ -569,6 +578,56 @@
   function drawAll(){ drawFitness(); drawActivity(); drawGenome(); }
   window.addEventListener('resize', drawAll);
   drawAll();
+
+  // Live polling
+  const liveDot   = document.getElementById('live-dot');
+  const liveLabel = document.getElementById('live-label');
+  let liveGenCount = -1;
+
+  function applyLiveData(data) {
+    if (!data || !Array.isArray(data.history)) return;
+    if (data.history.length === liveGenCount) return;
+    liveGenCount = data.history.length;
+
+    hist.length = 0;
+    for (const r of data.history) hist.push(r);
+
+    const items = [];
+    if (data.experiment) items.push(['exp',  data.experiment]);
+    if (data.task)       items.push(['task', data.task]);
+    if (hist.length)     items.push(['gen',  hist.length - 1]);
+    const last = hist[hist.length - 1];
+    if (last) {
+      items.push(['best', (last.best_acc * 100).toFixed(1) + '%']);
+      if (last.val_acc != null) items.push(['val', (last.val_acc * 100).toFixed(1) + '%']);
+    }
+    metaRow.innerHTML = items.map(([k, v]) =>
+      '<span class="meta">' + k + '=<b>' + v + '</b></span>').join('&nbsp;&nbsp;');
+
+    drawAll();
+  }
+
+  function setLiveStatus(status) {
+    liveDot.className = status;
+    liveLabel.textContent = status === 'on' ? 'LIVE' : status === 'done' ? 'DONE' : '—';
+  }
+
+  function pollLive() {
+    fetch('evo_live.json?' + Date.now())
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(data) {
+        applyLiveData(data);
+        setLiveStatus(data.status === 'done' ? 'done' : 'on');
+        if (data.status !== 'done') setTimeout(pollLive, 2000);
+      })
+      .catch(function() { setTimeout(pollLive, 3000); });
+  }
+
+  if (window.location.protocol !== 'file:') {
+    pollLive();
+  } else if (hist.length) {
+    setLiveStatus('done');
+  }
 })();
 </script>
 </body>

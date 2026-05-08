@@ -2,7 +2,7 @@
   "task":                "0_vs_1",
   "n_classes":           2,
 
-  "pop_size":            100,
+  "pop_size":            30,
   "n_generations":       100,
   "lut_mutation_rate":   0.02,
   "sel_mutation_rate":   0.01,

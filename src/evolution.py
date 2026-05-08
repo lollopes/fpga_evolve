@@ -41,6 +41,7 @@ Genome layout (unchanged):
   genome[..., k:]   = LUT bits        in {0, 1}
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -532,6 +533,8 @@ def evolve(
     distal_seed: int = 0,
     identity_seed: int = 0,
     device: torch.device = None,
+    live_path: Path = None,
+    live_meta: dict = None,
 ) -> tuple[torch.Tensor, torch.Tensor, list[dict]]:
     """Run (μ+λ) elitist evolution for `n_generations` generations.
 
@@ -724,6 +727,15 @@ def evolve(
         if val_available:
             record["val_acc"] = val_acc
         history.append(record)
+
+        if live_path is not None:
+            try:
+                live_data = {"status": "running", "history": history}
+                if live_meta:
+                    live_data.update(live_meta)
+                Path(live_path).write_text(json.dumps(live_data))
+            except Exception:
+                pass
 
         val_str = f" | val={val_acc:.1%}" if val_available else ""
         assign_str = (

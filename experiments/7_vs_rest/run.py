@@ -132,6 +132,8 @@ final_genomes, final_accs, history, best_assignment = evolve(
     distal_seed=DISTAL_SEED,
     identity_seed=IDENTITY_SEED,
     device=DEVICE,
+    live_path=REPO_ROOT / "viewer" / "evo_live.json",
+    live_meta={"experiment": EXP_DIR.name, "task": TASK},
 )
 
 # ── val evaluation on best genome ─────────────────────────────────────────────

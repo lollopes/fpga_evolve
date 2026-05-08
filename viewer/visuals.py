@@ -226,6 +226,25 @@ def build_scene(net: Lattice3DNetwork, batch_index: int) -> dict:
     }
 
 
+def wire_input_neurons(net: Lattice3DNetwork) -> None:
+    """
+    Viewer-only startup: force every z=0 E and O node's first selector to
+    P[7] (feedforward) and set the LUT upper half to 1, so those nodes fire
+    whenever the input fires.  The I node (index 1) is skipped so it does
+    not suppress O.  Mirrors wire_input_neurons_for_plot in plot_lattice.py.
+    """
+    n_nodes  = net.layer_sel.shape[2]
+    lut_size = net.layer_lut.shape[-1]
+    half     = lut_size // 2
+    I_NODE   = 1
+    with torch.no_grad():
+        for node in range(n_nodes):
+            if node == I_NODE:
+                continue
+            net.layer_sel[0, :, node, 0] = 7
+            net.layer_lut[0, :, node, half:] = 1
+
+
 def write_scene_js(scene: dict, out_path: Path) -> None:
     payload = "window.LATTICE_DATA = " + json.dumps(scene) + ";\n"
     out_path.write_text(payload, encoding="utf-8")
@@ -256,6 +275,7 @@ if __name__ == "__main__":
     net.use_positional_cues = USE_POSITIONAL_CUES
     net.use_distal = USE_DISTAL
 
+    wire_input_neurons(net)
     scene = build_scene(net, batch_index=BATCH_INDEX)
     write_scene_js(scene, OUT_PATH)
 
