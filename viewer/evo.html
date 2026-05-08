@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolution Viewer</title>
+<style>
+  :root {
+    --bg:       #0b0b0d;
+    --panel:    #14141a;
+    --border:   #2a2a33;
+    --text:     #e5e7eb;
+    --muted:    #94a3b8;
+    --accent:   #fcffa4;
+    --canvas-bg:#090909;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; overflow: hidden;
+  }
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr;
+    grid-template-rows: 44px 1fr 1fr;
+    grid-template-areas:
+      "header  header  header"
+      "network fitness genome"
+      "network activity genome";
+    height: 100%;
+  }
+
+  /* ── Header ───────────────────────────────────────── */
+  #header {
+    grid-area: header;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    overflow: hidden;
+  }
+  #header h1 {
+    font-size: 12px; margin: 0; flex: 0 0 auto;
+    color: var(--accent); letter-spacing: 0.08em; font-weight: 700;
+  }
+  .meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .meta b { color: var(--text); }
+
+  /* ── 3D network ───────────────────────────────────── */
+  #network-wrap {
+    grid-area: network;
+    position: relative; background: var(--canvas-bg);
+    border-right: 1px solid var(--border);
+  }
+  #network-canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  #network-canvas:active { cursor: grabbing; }
+  #net-hover {
+    position: absolute; top: 8px; left: 8px; pointer-events: none;
+    font-size: 11px; background: rgba(0,0,0,.6); padding: 4px 7px;
+    border-radius: 4px; border: 1px solid var(--border); display: none;
+  }
+  #net-hint {
+    position: absolute; bottom: 8px; left: 8px; pointer-events: none;
+    font-size: 9.5px; color: var(--muted);
+  }
+
+  /* ── Chart panels (middle column) ────────────────── */
+  .chart-panel {
+    display: flex; flex-direction: column;
+    box-sizing: border-box; padding: 8px 12px 8px;
+    background: var(--panel); min-height: 0;
+  }
+  #activity-panel { border-top: 1px solid var(--border); }
+  .chart-panel h2 {
+    font-size: 10px; margin: 0 0 4px; flex: 0 0 auto;
+    color: var(--accent); letter-spacing: 0.1em;
+    font-weight: 700; text-transform: uppercase;
+  }
+  .chart-canvas {
+    flex: 1; display: block; width: 100%;
+    background: var(--canvas-bg);
+    border: 1px solid var(--border); border-radius: 3px;
+  }
+  .chart-legend {
+    display: flex; gap: 10px; margin-top: 4px; flex: 0 0 auto;
+    font-size: 9.5px; color: var(--muted); flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 3px; }
+  .ls { width: 18px; height: 2px; border-radius: 1px; flex: 0 0 auto; }
+
+  /* ── Genome panel (right column) ──────────────────── */
+  #genome-wrap {
+    grid-area: genome;
+    display: flex; flex-direction: column;
+    box-sizing: border-box; padding: 8px 12px 8px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    min-height: 0;
+  }
+  #genome-wrap h2 {
+    font-size: 10px; margin: 0 0 4px; flex: 0 0 auto;
+    color: var(--accent); letter-spacing: 0.1em;
+    font-weight: 700; text-transform: uppercase;
+  }
+  #genome-canvas {
+    flex: 1; display: block; width: 100%;
+    background: var(--canvas-bg);
+    border: 1px solid var(--border); border-radius: 3px;
+  }
+  #genome-legend {
+    display: flex; gap: 8px; margin-top: 4px; flex: 0 0 auto;
+    font-size: 9.5px; color: var(--muted); flex-wrap: wrap;
+  }
+
+  .err { color: #fca5a5; padding: 24px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <h1>EVOLUTION</h1>
+    <div id="meta-row"></div>
+  </div>
+
+  <div id="network-wrap">
+    <canvas id="network-canvas"></canvas>
+    <div id="net-hover"></div>
+    <div id="net-hint">drag=rotate · wheel=zoom · dbl=reset</div>
+  </div>
+
+  <div class="chart-panel" id="fitness-panel">
+    <h2>Accuracy per generation</h2>
+    <canvas class="chart-canvas" id="fitness-canvas"></canvas>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="ls" style="background:#fcffa4;"></div>best</div>
+      <div class="legend-item"><div class="ls" style="background:#7c9fd4;"></div>val</div>
+      <div class="legend-item"><div class="ls" style="background:#4b5563;"></div>mean</div>
+      <div class="legend-item" style="color:#5a3a1a;">
+        <div class="ls" style="border-top:1px dashed #a05a20;"></div>injection
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-panel" id="activity-panel">
+    <h2>Activity health per generation</h2>
+    <canvas class="chart-canvas" id="activity-canvas"></canvas>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="ls" style="background:#ef4444;"></div>silent frac</div>
+      <div class="legend-item"><div class="ls" style="background:#f97316;"></div>sat frac</div>
+      <div class="legend-item"><div class="ls" style="background:#facc15;"></div>best fitness</div>
+    </div>
+  </div>
+
+  <div id="genome-wrap">
+    <h2>Genome trajectory</h2>
+    <canvas id="genome-canvas"></canvas>
+    <div id="genome-legend"></div>
+  </div>
+
+</div>
+
+<script src="evo_data.js"></script>
+<script>
+(() => {
+  const D = window.EVO_DATA;
+  if (!D) {
+    document.body.innerHTML =
+      '<div class="err">evo_data.js not found.<br>' +
+      'Run: <b>python viewer/evo.py --experiment experiments/YOUR_EXP</b></div>';
+    return;
+  }
+
+  const S    = D.scene;
+  const hist = D.history || [];
+
+  // ── Header ──────────────────────────────────────────────────────────────
+  const metaRow = document.getElementById('meta-row');
+  const items = [];
+  if (D.experiment) items.push(['exp',   D.experiment]);
+  if (D.task)       items.push(['task',  D.task]);
+  if (D.train_acc != null) items.push(['train', `${(D.train_acc*100).toFixed(1)}%`]);
+  if (D.val_acc   != null) items.push(['val',   `${(D.val_acc  *100).toFixed(1)}%`]);
+  if (S) items.push(['Z',S.Z],['H',S.H],['W',S.W],['k',S.k]);
+  if (hist.length) items.push(['gens', hist.length]);
+  metaRow.innerHTML = items.map(([k,v]) =>
+    `<span class="meta">${k}=<b>${v}</b></span>`).join('&nbsp;&nbsp;');
+
+  // ── Pool source metadata (matches src/lattice.py pool layout) ──────────
+  const POOL_LABELS = [
+    'left','right','up','down','above','below',
+    'self','fwd','dist0','dist1','id0','id1','posX','posY','·','·'
+  ];
+  const POOL_COLORS = [
+    '#88c0d0','#88c0d0','#88c0d0','#88c0d0',  // 0-3 lateral
+    '#a3be8c','#bf616a',                        // 4-5 vertical
+    '#e5e7eb',                                  // 6  self
+    '#ebcb8b',                                  // 7  feedforward
+    '#b48ead','#d08770',                        // 8-9 distal
+    '#5e81ac','#5e81ac',                        // 10-11 identity
+    '#4c566a','#4c566a',                        // 12-13 positional
+    '#2a2a33','#2a2a33',                        // 14-15 zero
+  ];
+
+  // ── LUT function lookup (k=2 only) ─────────────────────────────────────
+  // key = lut[0]*1 + lut[1]*2 + lut[2]*4 + lut[3]*8
+  // addr i: A=pool[sel[0]], B=pool[sel[1]]; addr = (A<<1)|B
+  const LUT2_NAMES = [
+    'ZERO','NOR','¬A·B','¬A','A·¬B','¬B','XOR','NAND',
+    'AND','XNOR','B','¬A+B','A','A+¬B','OR','ONE'
+  ];
+  const LUT2_COLORS = [
+    '#1a1a2e','#ef4444','#374151','#60a5fa',
+    '#4b5563','#93c5fd','#9333ea','#86efac',
+    '#16a34a','#d8b4fe','#3b82f6','#6366f1',
+    '#2563eb','#8b5cf6','#ea580c','#e2e8f0',
+  ];
+
+  function lutFuncId(lut) {
+    let key = 0;
+    for (let i = 0; i < lut.length; i++) key += lut[i] * (1 << i);
+    return key;
+  }
+  function funcName(fid, k) {
+    return k === 2 ? (LUT2_NAMES[fid] || '?') : `f${fid}`;
+  }
+  function funcColor(fid, k) {
+    return k === 2 ? (LUT2_COLORS[fid] || '#475569') : '#475569';
+  }
+
+  // ── 3D champion network ─────────────────────────────────────────────────
+  if (S) {
+    const cv  = document.getElementById('network-canvas');
+    const ctx = cv.getContext('2d');
+    const hov = document.getElementById('net-hover');
+
+    let cx0=0, cy0=0, cz0=0;
+    for (const n of S.nodes) { cx0+=n.pos[0]; cy0+=n.pos[1]; cz0+=n.pos[2]; }
+    cx0/=S.nodes.length; cy0/=S.nodes.length; cz0/=S.nodes.length;
+
+    const HOME = { rotX:-0.55, rotY:0.7, zoom:1.0, panX:0, panY:0 };
+    let rotX=HOME.rotX, rotY=HOME.rotY, zoom=HOME.zoom, panX=HOME.panX, panY=HOME.panY;
+
+    function proj(p) {
+      const x=p[0]-cx0, y=p[1]-cy0, z=p[2]-cz0;
+      const sY=Math.sin(rotY), cY=Math.cos(rotY);
+      const x1=cY*x+sY*z, z1=-sY*x+cY*z;
+      const sX=Math.sin(rotX), cX=Math.cos(rotX);
+      return [x1, cX*y-sX*z1, sX*y+cX*z1];
+    }
+
+    function resizeNet() {
+      const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight;
+      if (cv.width!==w*dpr||cv.height!==h*dpr) {
+        cv.width=w*dpr; cv.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+      }
+    }
+
+    let lastProj = [];
+    function drawNet() {
+      resizeNet();
+      const w=cv.clientWidth, h=cv.clientHeight;
+      ctx.fillStyle='#090909'; ctx.fillRect(0,0,w,h);
+      const vcx=w/2+panX, vcy=h/2+panY;
+      const np=S.nodes.map(n=>{const p=proj(n.pos);return{node:n,x:p[0],y:p[1],z:p[2]};});
+      let maxR=1;
+      for (const a of np){const r=Math.max(Math.abs(a.x),Math.abs(a.y));if(r>maxR)maxR=r;}
+      const scale=Math.min(w,h)*0.42/maxR*zoom;
+      const toPx=(x,y)=>[vcx+x*scale,vcy-y*scale];
+      let zmin=+Infinity, zmax=-Infinity;
+      for (const a of np){if(a.z<zmin)zmin=a.z;if(a.z>zmax)zmax=a.z;}
+      const zspan=Math.max(1e-6,zmax-zmin);
+      const fade=z=>0.2+0.8*(z-zmin)/zspan;
+      // edges
+      const ep=S.edges.map(e=>{const a=proj(e.from),b=proj(e.to);return{e,ax:a[0],ay:a[1],bx:b[0],by:b[1],mz:(a[2]+b[2])*.5};}).sort((a,b)=>a.mz-b.mz);
+      for (const{e,ax,ay,bx,by,mz}of ep) {
+        const[u0,v0]=toPx(ax,ay),[u1,v1]=toPx(bx,by);
+        ctx.globalAlpha=fade(mz)*.65; ctx.strokeStyle=e.color; ctx.lineWidth=0.85;
+        ctx.beginPath(); ctx.moveTo(u0,v0); ctx.lineTo(u1,v1); ctx.stroke();
+        const dx=u1-u0,dy=v1-v0,len=Math.hypot(dx,dy)||1,tx=dx/len,ty=dy/len,nx=-ty,ny=tx;
+        const ah=5,aw=2.5,bx2=u1-tx*ah,by2=v1-ty*ah;
+        ctx.fillStyle=e.color;
+        ctx.beginPath();ctx.moveTo(u1,v1);ctx.lineTo(bx2+nx*aw,by2+ny*aw);ctx.lineTo(bx2-nx*aw,by2-ny*aw);ctx.closePath();ctx.fill();
+        ctx.globalAlpha=1;
+      }
+      // nodes
+      np.sort((a,b)=>a.z-b.z);
+      for (const a of np){
+        const[u,v]=toPx(a.x,a.y), r=(a.node.radius||2)*Math.sqrt(zoom);
+        ctx.globalAlpha=a.node.kind==='module'?0.3:fade(a.z);
+        ctx.fillStyle=a.node.color; ctx.beginPath(); ctx.arc(u,v,r,0,Math.PI*2); ctx.fill();
+        ctx.globalAlpha=1;
+      }
+      lastProj=np.map(a=>{const[u,v]=toPx(a.x,a.y);return{u,v,r:(a.node.radius||2)*Math.sqrt(zoom),node:a.node};});
+    }
+
+    function pick(u,v){let best=null,bestD=1e9;for(const p of lastProj){const d=Math.hypot(p.u-u,p.v-v);if(d<p.r+4&&d<bestD){best=p;bestD=d;}}return best;}
+
+    let dm=null,lx=0,ly=0,dd=false,dx0=0,dy0=0;
+    cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);dm=(e.button===2||e.shiftKey)?'pan':'rotate';dx0=lx=e.clientX;dy0=ly=e.clientY;dd=false;hov.style.display='none';});
+    cv.addEventListener('pointermove',e=>{
+      if(!dm){const r=cv.getBoundingClientRect(),b=pick(e.clientX-r.left,e.clientY-r.top);hov.style.display=b&&b.node.label?'block':'none';if(b&&b.node.label)hov.textContent=b.node.label;return;}
+      if(Math.abs(e.clientX-dx0)+Math.abs(e.clientY-dy0)>4)dd=true;
+      const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
+      if(dm==='rotate'){rotY+=dx*.01;rotX+=dy*.01;}else{panX+=dx;panY+=dy;}
+      drawNet();
+    });
+    cv.addEventListener('pointerup',()=>{dm=null;});
+    cv.addEventListener('pointercancel',()=>{dm=null;});
+    cv.addEventListener('pointerleave',()=>{hov.style.display='none';});
+    cv.addEventListener('contextmenu',e=>e.preventDefault());
+    cv.addEventListener('wheel',e=>{e.preventDefault();zoom*=Math.exp(-e.deltaY*.001);zoom=Math.max(.2,Math.min(6,zoom));drawNet();},{passive:false});
+    cv.addEventListener('dblclick',()=>{rotX=HOME.rotX;rotY=HOME.rotY;zoom=HOME.zoom;panX=HOME.panX;panY=HOME.panY;drawNet();});
+    window.addEventListener('resize',drawNet);
+    drawNet();
+  }
+
+  // ── Generic chart helper ────────────────────────────────────────────────
+  const injections = hist.map(h => h.injected || false);
+
+  function drawChart(canvas, series, { ymin, ymax, yFmt }) {
+    const n = hist.length;
+    const dpr=window.devicePixelRatio||1, cw=canvas.clientWidth, ch=canvas.clientHeight;
+    if(!cw||!ch)return;
+    if(canvas.width!==cw*dpr||canvas.height!==ch*dpr){canvas.width=cw*dpr;canvas.height=ch*dpr;}
+    const ctx=canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#090909';ctx.fillRect(0,0,cw,ch);
+
+    if(!n){ctx.fillStyle='#475569';ctx.font='11px monospace';ctx.textAlign='center';ctx.fillText('no history',cw/2,ch/2);return;}
+
+    const ml=40,mr=12,mt=8,mb=20,pw=cw-ml-mr,ph=ch-mt-mb;
+    const toX=i=>ml+(i/Math.max(n-1,1))*pw;
+    const toY=v=>mt+ph*(1-(v-ymin)/Math.max(ymax-ymin,1e-9));
+
+    // grid + y labels
+    ctx.font='9px monospace';ctx.textAlign='right';
+    for(let i=0;i<=4;i++){
+      const v=ymin+(ymax-ymin)*i/4, y=toY(v);
+      ctx.strokeStyle='#1e2030';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ml,y);ctx.lineTo(ml+pw,y);ctx.stroke();
+      ctx.fillStyle='#475569';ctx.fillText(yFmt?yFmt(v):`${(v*100).toFixed(0)}%`,ml-3,y+3);
+    }
+    // x labels
+    ctx.textAlign='center';ctx.fillStyle='#475569';
+    for(let i=0;i<=5;i++){const gi=Math.round((n-1)*i/5);ctx.fillText(gi,toX(gi),mt+ph+14);}
+
+    // injection markers
+    ctx.strokeStyle='#3a2010';ctx.lineWidth=1;ctx.setLineDash([2,4]);
+    for(let i=0;i<n;i++)if(injections[i]){ctx.beginPath();ctx.moveTo(toX(i),mt);ctx.lineTo(toX(i),mt+ph);ctx.stroke();}
+    ctx.setLineDash([]);
+
+    for(const{values,color,alpha,width}of series){
+      ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();
+      let first=true;
+      for(let i=0;i<n;i++){const v=values[i];if(v==null)continue;const x=toX(i),y=toY(v);if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);}
+      ctx.stroke();ctx.globalAlpha=1;
+    }
+  }
+
+  // ── Accuracy chart ──────────────────────────────────────────────────────
+  const fitCv = document.getElementById('fitness-canvas');
+  function drawFitness() {
+    if(!hist.length)return;
+    const best=hist.map(h=>h.best_acc), mean=hist.map(h=>h.mean_acc), val=hist.map(h=>h.val_acc??null);
+    const all=[...best,...mean,...val.filter(v=>v!=null)];
+    let ymin=Math.max(0,Math.min(...all)-.04), ymax=Math.min(1,Math.max(...all)+.02);
+    if(ymax-ymin<.1){ymin=Math.max(0,ymin-.05);ymax=Math.min(1,ymax+.05);}
+    drawChart(fitCv,[
+      {values:mean,color:'#4b5563',alpha:.8,width:1},
+      {values:val, color:'#7c9fd4',alpha:.9,width:1.4},
+      {values:best,color:'#fcffa4',alpha:1, width:1.8},
+    ],{ymin,ymax});
+  }
+
+  // ── Activity chart ──────────────────────────────────────────────────────
+  const actCv = document.getElementById('activity-canvas');
+  function drawActivity() {
+    if(!hist.length)return;
+    const silent=hist.map(h=>h.best_silent_frac??null);
+    const sat   =hist.map(h=>h.best_sat_frac??null);
+    const fit   =hist.map(h=>h.best_fitness??null);
+    const allFracs=[...silent,...sat].filter(v=>v!=null);
+    const ymax=allFracs.length?Math.min(1,Math.max(...allFracs)+.05):1;
+
+    // Normalise fitness to [0,1] for overlay
+    const allFit=fit.filter(v=>v!=null);
+    const fmin=Math.min(...allFit), fmax=Math.max(...allFit);
+    const fitNorm=fit.map(v=>v==null?null:(v-fmin)/Math.max(fmax-fmin,1e-9)*ymax);
+
+    drawChart(actCv,[
+      {values:fitNorm, color:'#facc15',alpha:.6,width:1.2},
+      {values:silent,  color:'#ef4444',alpha:.9,width:1.6},
+      {values:sat,     color:'#f97316',alpha:.9,width:1.6},
+    ],{ymin:0,ymax});
+  }
+
+  // ── Genome trajectory ───────────────────────────────────────────────────
+  const genCv = document.getElementById('genome-canvas');
+
+  function drawGenome() {
+    const dpr=window.devicePixelRatio||1, cw=genCv.clientWidth, ch=genCv.clientHeight;
+    if(!cw||!ch)return;
+    if(genCv.width!==cw*dpr||genCv.height!==ch*dpr){genCv.width=cw*dpr;genCv.height=ch*dpr;}
+    const ctx=genCv.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#090909';ctx.fillRect(0,0,cw,ch);
+
+    const n=hist.length;
+    const hasG=n>0&&hist[0].best_genome!=null;
+    const k=S?S.k:2, Z=S?S.Z:4;
+    const lutSize=1<<k;
+    const NODE=['E','I','O'];
+
+    if(!n){
+      ctx.fillStyle='#475569';ctx.font='11px monospace';ctx.textAlign='center';
+      ctx.fillText('no history',cw/2,ch/2);return;
+    }
+
+    // Layout
+    const lblW=40, genAxisH=16, mt=4, hammH=hasG?26:0;
+    const nSelRows=Z*3*k;       // 24
+    const nLutRows=Z*3;         // 12  (one row per z×node, coloured by function id)
+    const nGap=Z*2;             // thin layer-gap rows (2 per layer: one in sel, one in lut section)
+    const totalRows=nSelRows+nLutRows+nGap;
+    const contentH=ch-mt-hammH-genAxisH-8;
+    const rowH=contentH/totalRows;
+
+    const plotW=cw-lblW;
+    const colW=hasG?plotW/n:plotW;
+
+    // helper: get genome for gen i
+    function genome(i){return hasG?hist[i].best_genome:null;}
+    function champG(){
+      if(hasG)return hist[n-1].best_genome;
+      // reconstruct from scene buffers
+      const g=[];
+      for(let z=0;z<Z;z++){g[z]=[];for(let nd=0;nd<3;nd++){g[z][nd]=[...S.layer_sel[z][nd],...S.layer_lut[z][nd]];}}
+      return g;
+    }
+    const champ=champG();
+
+    // ── Hamming sparkline ─────────────────────────────────────────────
+    if(hasG){
+      const ham=[0];
+      for(let i=1;i<n;i++){
+        const g1=hist[i-1].best_genome, g2=hist[i].best_genome;
+        let d=0;
+        for(let z=0;z<Z;z++)for(let nd=0;nd<3;nd++)for(let j=0;j<g1[z][nd].length;j++)if(g1[z][nd][j]!==g2[z][nd][j])d++;
+        ham.push(d);
+      }
+      const maxH=Math.max(...ham,1);
+      ctx.fillStyle='#130d08'; ctx.fillRect(lblW,mt,plotW,hammH-2);
+      ctx.strokeStyle='#f97316';ctx.lineWidth=1.2;ctx.beginPath();
+      for(let i=0;i<n;i++){
+        const x=lblW+(i+.5)*colW, y=mt+hammH-3-(ham[i]/maxH)*(hammH-7);
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      // zero-line
+      ctx.strokeStyle='#2a2a33';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(lblW,mt+hammH-3);ctx.lineTo(lblW+plotW,mt+hammH-3);ctx.stroke();
+      ctx.fillStyle='#f97316';ctx.font='8px monospace';ctx.textAlign='left';
+      ctx.fillText(`Δ genome/gen  max=${maxH}`,lblW+3,mt+9);
+    }
+
+    // ── Draw rows ─────────────────────────────────────────────────────
+    let rowY=mt+hammH;
+
+    function fillRow(y,color,alpha){
+      ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fillRect(lblW,y,plotW,rowH+.5);ctx.globalAlpha=1;
+    }
+    function fillRowData(y,getColor){
+      if(hasG){
+        for(let i=0;i<n;i++){
+          ctx.fillStyle=getColor(i);
+          ctx.fillRect(lblW+i*colW,y,Math.max(1,colW+.3),rowH+.5);
+        }
+      }else{
+        ctx.fillStyle=getColor(0);
+        ctx.fillRect(lblW,y,plotW,rowH+.5);
+      }
+    }
+
+    // SELECTOR section
+    ctx.fillStyle='#1c1c24';ctx.font='7px monospace';ctx.textAlign='left';
+    ctx.fillText('SEL',lblW+2,rowY+rowH*.8);
+
+    for(let z=0;z<Z;z++){
+      for(let nd=0;nd<3;nd++){
+        const labelY=rowY+k*rowH/2;
+        for(let s=0;s<k;s++){
+          fillRowData(rowY,i=>{
+            const g=genome(i)||champ;
+            return POOL_COLORS[g[z][nd][s]]||'#2a2a33';
+          });
+          rowY+=rowH;
+        }
+        // label centred over k selector rows
+        ctx.font=`${Math.min(8,rowH*k*.75)}px monospace`;
+        ctx.textAlign='right';ctx.fillStyle='#94a3b8';
+        ctx.fillText(`z${z}${NODE[nd]}`,lblW-2,labelY+3);
+      }
+      // layer gap
+      ctx.fillStyle='#0b0b0d';ctx.fillRect(0,rowY,cw,rowH*.6);
+      rowY+=rowH*.6;
+    }
+
+    // spacer before LUT section
+    rowY+=rowH*.4;
+
+    // LUT section header
+    ctx.fillStyle='#1c1c24';ctx.font='7px monospace';ctx.textAlign='left';
+    ctx.fillText('LUT fn',lblW+2,rowY+rowH*.8);
+
+    for(let z=0;z<Z;z++){
+      for(let nd=0;nd<3;nd++){
+        fillRowData(rowY,i=>{
+          const g=genome(i)||champ;
+          const lut=g[z][nd].slice(k);
+          return funcColor(lutFuncId(lut),k);
+        });
+        // label: function name of champion
+        const champLut=champ[z][nd].slice(k);
+        const fid=lutFuncId(champLut);
+        ctx.font=`${Math.min(8,rowH*.75)}px monospace`;
+        ctx.textAlign='right';ctx.fillStyle='#e2e8f0';
+        ctx.fillText(funcName(fid,k),lblW-2,rowY+rowH*.75);
+        rowY+=rowH;
+      }
+      // layer gap
+      ctx.fillStyle='#0b0b0d';ctx.fillRect(0,rowY,cw,rowH*.6);
+      rowY+=rowH*.6;
+    }
+
+    // ── Generation axis ───────────────────────────────────────────────
+    if(hasG){
+      ctx.fillStyle='#475569';ctx.font='9px monospace';ctx.textAlign='center';
+      for(let i=0;i<=5;i++){
+        const gi=Math.round((n-1)*i/5);
+        ctx.fillText(gi,lblW+(gi+.5)*colW,ch-2);
+      }
+    }
+
+    // ── Pool source legend ────────────────────────────────────────────
+    // (rendered in the #genome-legend div via HTML, not canvas)
+  }
+
+  // Populate genome legend
+  (()=>{
+    const leg=document.getElementById('genome-legend');
+    const groups=[
+      {color:'#88c0d0',label:'lateral'},
+      {color:'#a3be8c',label:'above'},
+      {color:'#bf616a',label:'below'},
+      {color:'#e5e7eb',label:'self'},
+      {color:'#ebcb8b',label:'fwd'},
+      {color:'#b48ead',label:'distal'},
+      {color:'#5e81ac',label:'identity'},
+      {color:'#4c566a',label:'pos'},
+    ];
+    leg.innerHTML=groups.map(g=>
+      `<span style="display:flex;align-items:center;gap:3px;font-size:9px;color:var(--muted)">
+        <span style="width:10px;height:10px;border-radius:2px;background:${g.color};flex:0 0 auto"></span>${g.label}
+      </span>`
+    ).join('');
+  })();
+
+  // ── Wire up ─────────────────────────────────────────────────────────────
+  function drawAll(){ drawFitness(); drawActivity(); drawGenome(); }
+  window.addEventListener('resize', drawAll);
+  drawAll();
+})();
+</script>
+</body>
+</html>

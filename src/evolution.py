@@ -231,18 +231,42 @@ def evaluate(
 # WTA readout
 # ---------------------------------------------------------------------------
 
+def _column_features_from_traj(
+    traj: torch.Tensor,      # [B, T, H*W] bool/float
+    H: int,
+    W: int,
+    readout_decay: float,
+) -> torch.Tensor:
+    """Collapse a top-layer trajectory to per-column features.
+
+    If readout_decay == 0, this reduces to a raw time-sum. Otherwise it uses
+    the final state of a leaky integrator: s_t = decay * s_{t-1} + spikes_t.
+    """
+    spikes = traj.float().reshape(traj.shape[0], traj.shape[1], H, W)
+    if readout_decay <= 0.0:
+        return spikes.sum(dim=1).sum(dim=1)
+
+    state = torch.zeros(
+        (spikes.shape[0], H, W), device=spikes.device, dtype=spikes.dtype
+    )
+    for t in range(spikes.shape[1]):
+        state = readout_decay * state + spikes[:, t]
+    return state.sum(dim=1)
+
+
 def classify_wta(
     net: Lattice3DNetwork,
     X_batch: torch.Tensor,      # [N, T, H, W] long, binary
     y_batch: torch.Tensor,      # [N] long
     assignment: torch.Tensor,   # [B, W] long — column-to-class assignment
     n_classes: int,
+    readout_decay: float = 0.0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Classify a batch using a pre-computed per-genome column assignment.
 
-    Each top-layer column is assigned to one class.  For each sample the
-    logit for class c is the sum of spike counts over all columns assigned
-    to c; prediction is argmax.
+    Each top-layer column is assigned to one class. For each sample the
+    logit for class c is the sum of leaky-integrated column activations over
+    all columns assigned to c; prediction is argmax.
 
     Parameters
     ----------
@@ -264,9 +288,8 @@ def classify_wta(
 
     for n in range(N):
         seq      = X_batch[n:n + 1].expand(B, T, H, W).contiguous()
-        traj     = net.run(seq)                                  # [B, T, H*W]
-        feats    = traj.float().sum(dim=1)                       # [B, H*W]
-        col_feats = feats.reshape(B, H, W).sum(dim=1)           # [B, W]
+        traj      = net.run(seq)                                 # [B, T, H*W]
+        col_feats = _column_features_from_traj(traj, H, W, readout_decay)  # [B, W]
 
         logits = torch.zeros(B, n_classes, device=dev)
         for c in range(n_classes):
@@ -289,12 +312,13 @@ def evaluate_wta(
     X_batch: torch.Tensor,   # [N, T, H, W] long, binary
     y_batch: torch.Tensor,   # [N] long
     n_classes: int,
+    readout_decay: float = 0.0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Score every circuit using a data-driven WTA column assignment.
 
     Two passes over the batch:
-      Pass 1 — for each genome, compute mean column spike count per class
-               and assign each column to its most-responsive class.
+      Pass 1 — for each genome, compute mean leaky-integrated column
+               activity per class and assign each column to its most-responsive class.
       Pass 2 — classify every sample using that assignment (via classify_wta).
 
     Unlike the fixed-stripe readout, the network only needs to fire
@@ -322,8 +346,8 @@ def evaluate_wta(
 
     for n in range(N):
         seq      = X_batch[n:n + 1].expand(B, T, H, W).contiguous()
-        traj     = net.run(seq)                                  # [B, T, H*W]
-        col_feats = traj.float().sum(dim=1).reshape(B, H, W).sum(dim=1)  # [B, W]
+        traj      = net.run(seq)                                 # [B, T, H*W]
+        col_feats = _column_features_from_traj(traj, H, W, readout_decay)  # [B, W]
 
         lbl = int(y_batch[n])
         class_col_sums[:, lbl, :] += col_feats
@@ -335,10 +359,23 @@ def evaluate_wta(
 
     # --- Pass 2: classify using the computed assignment --------------------
     accs, silent_frac, sat_frac = classify_wta(
-        net, X_batch, y_batch, assignment, n_classes
+        net, X_batch, y_batch, assignment, n_classes, readout_decay=readout_decay
     )
 
     return accs, silent_frac, sat_frac, assignment
+
+
+def assignment_diagnostics(
+    assignment: torch.Tensor,
+    n_classes: int,
+) -> tuple[list[int], int, int, float]:
+    """Summarise one genome's WTA column assignment."""
+    counts = torch.bincount(assignment, minlength=n_classes)
+    total = int(counts.sum())
+    dominant_class = int(counts.argmax()) if total > 0 else -1
+    dominant_frac = float(counts.max() / counts.sum()) if total > 0 else 0.0
+    used_classes = int((counts > 0).sum())
+    return counts.tolist(), used_classes, dominant_class, dominant_frac
 
 
 def _evaluate_wta_parallel(
@@ -352,6 +389,7 @@ def _evaluate_wta_parallel(
     use_identity: bool,
     use_positional_cues: bool,
     use_distal: bool,
+    readout_decay: float,
     device: torch.device,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Score all B genomes on all N samples in a single forward pass.
@@ -403,13 +441,10 @@ def _evaluate_wta_parallel(
     traj = big_net.run(expanded_X)                              # [NB, T, H*W]
     traj_nb = traj.reshape(N, B, T, H_ * W_)                   # [N, B, T, H*W]
 
-    # ── Column features: sum over T, then sum over H (rows) ─────────────────
-    col_feats = (
-        traj_nb.float()
-        .sum(dim=2)                    # sum over T → [N, B, H*W]
-        .reshape(N, B, H_, W_)
-        .sum(dim=2)                    # sum over H → [N, B, W]
-    )
+    # ── Column features: leaky integration over T, then sum over H rows ───
+    col_feats = _column_features_from_traj(
+        traj_nb.reshape(N * B, T, H_ * W_), H_, W_, readout_decay
+    ).reshape(N, B, W_)
 
     # ── WTA assignment ───────────────────────────────────────────────────────
     y_oh = F.one_hot(y_batch, n_classes).float()               # [N, n_classes]
@@ -489,6 +524,7 @@ def evolve(
     stagnation_patience: int = 10,
     stagnation_inject_frac: float = 0.3,
     parallel_samples: bool = False,
+    readout_decay: float = 0.0,
     seed: int = 42,
     use_identity: bool = True,
     use_positional_cues: bool = False,
@@ -555,6 +591,8 @@ def evolve(
         raise ValueError(f"X_pool and y_pool must agree on axis 0; got {P} vs {y_pool.shape[0]}")
     if (X_val is None) != (y_val is None):
         raise ValueError("X_val and y_val must both be provided or both be None")
+    if not (0.0 <= readout_decay <= 1.0):
+        raise ValueError(f"readout_decay must be in [0, 1], got {readout_decay}")
 
     # Resolve mutation rates
     lut_rate = lut_mutation_rate if lut_mutation_rate is not None else mutation_rate
@@ -578,6 +616,7 @@ def evolve(
           f"crossover={'on' if use_crossover else 'off'} | "
           f"lut_rate={lut_rate} sel_rate={sel_rate} | "
           f"penalty w_silent={w_silent} w_sat={w_sat} | "
+          f"readout_decay={readout_decay:.2f} | "
           f"stagnation patience={stagnation_patience} inject={n_inject} | "
           f"parallel_samples={'on' if parallel_samples else 'off'} | "
           f"val logging={'on' if val_available else 'off'}")
@@ -602,6 +641,7 @@ def evolve(
                 use_identity=use_identity,
                 use_positional_cues=use_positional_cues,
                 use_distal=use_distal,
+                readout_decay=readout_decay,
                 device=dev,
             )
         else:
@@ -615,7 +655,7 @@ def evolve(
                 device=dev,
             )
             accs, silent_frac, sat_frac, assignments = evaluate_wta(
-                net, X_batch, y_batch, n_classes
+                net, X_batch, y_batch, n_classes, readout_decay=readout_decay
             )
         fitness = _compute_fitness(accs, silent_frac, sat_frac, w_silent, w_sat)
 
@@ -657,30 +697,47 @@ def evolve(
                 device=dev,
             )
             val_acc = float(
-                classify_wta(val_net, X_val, y_val, assignments[0:1], n_classes)[0]
+                classify_wta(
+                    val_net, X_val, y_val, assignments[0:1], n_classes, readout_decay=readout_decay
+                )[0]
             )
 
+        assign_counts, assign_used, assign_top_class, assign_top_frac = assignment_diagnostics(
+            assignments[0], n_classes
+        )
+
         record = {
-            "gen":              gen,
-            "best_acc":         float(accs[0]),
-            "mean_acc":         float(accs.mean()),
-            "best_fitness":     float(fitness[0]),
-            "mean_fitness":     float(fitness.mean()),
-            "best_silent_frac": float(silent_frac[0]),
-            "best_sat_frac":    float(sat_frac[0]),
-            "injected":         injected,
+            "gen":                    gen,
+            "best_acc":               float(accs[0]),
+            "mean_acc":               float(accs.mean()),
+            "best_fitness":           float(fitness[0]),
+            "mean_fitness":           float(fitness.mean()),
+            "best_silent_frac":       float(silent_frac[0]),
+            "best_sat_frac":          float(sat_frac[0]),
+            "best_assignment_counts": assign_counts,
+            "best_assignment_used":   assign_used,
+            "best_assignment_top_class": assign_top_class,
+            "best_assignment_top_frac":  assign_top_frac,
+            "injected":               injected,
+            "best_genome":            genomes[0].cpu().tolist(),  # [Z, 3, k+2**k]
         }
         if val_available:
             record["val_acc"] = val_acc
         history.append(record)
 
         val_str = f" | val={val_acc:.1%}" if val_available else ""
+        assign_str = (
+            f" | assign_used={assign_used}/{n_classes}"
+            f" top={assign_top_class}:{assign_top_frac:.1%}"
+            f" counts={assign_counts}"
+        )
         print(
             f"gen {gen:4d} | "
             f"train best={float(accs[0]):.1%} mean={float(accs.mean()):.1%}"
             f"{val_str} | "
             f"fit={float(fitness[0]):.3f} | "
             f"silent={float(silent_frac[0]):.2f} sat={float(sat_frac[0]):.2f}"
+            f"{assign_str}"
             + (" [inject]" if injected else "")
         )
 
@@ -716,7 +773,7 @@ def evolve(
         device=dev,
     )
     final_accs, _, _, final_assignments = evaluate_wta(
-        final_net, X_pool, y_pool, n_classes
+        final_net, X_pool, y_pool, n_classes, readout_decay=readout_decay
     )
     order = torch.argsort(-final_accs, stable=True)
     best_assignment = final_assignments[order[0]:order[0] + 1]  # [1, W]
