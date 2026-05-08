@@ -43,6 +43,7 @@ TASK      = BASE_CFG["task"]           # "10class"
 N_CLASSES = BASE_CFG["n_classes"]      # 10
 SEED      = BASE_CFG["seed"]
 DEVICE    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+VAL_GAP_WEIGHT = BASE_CFG.get("val_gap_weight", 0.0)
 
 # SHD feature dim is always 700 cochlear channels.
 # Valid (H, W) grid shapes that tile exactly 700 neurons per layer.
@@ -161,6 +162,7 @@ def make_objective(trial_gens: int):
                 stagnation_inject_frac=stag_frac,
                 parallel_samples=False,
                 readout_decay=readout_decay,
+                val_gap_weight=VAL_GAP_WEIGHT,
                 X_val=X_val,
                 y_val=y_val,
                 seed=SEED,
@@ -232,6 +234,7 @@ def main():
         f"{int(HPO_VAL_FRACTION*HPO_TRAIN_PER_CLASS*N_CLASSES)} val)\n"
         f"Search: n_time_bins in [10, 20, 40], "
         f"readout_decay in [0.0, 0.90, 0.95, 0.98]\n"
+        f"Fixed val_gap_weight: {VAL_GAP_WEIGHT:.2f}\n"
         f"Study name: {args.study_name}\n"
         f"Study DB: {db_path}\n"
     )
@@ -280,6 +283,7 @@ def main():
         "use_distal":             best.params["use_distal"],
         "n_time_bins":            best.params["n_time_bins"],
         "readout_decay":         best.params["readout_decay"],
+        "val_gap_weight":        VAL_GAP_WEIGHT,
         "pop_size":               pop_size,
         "elite_size":             elite_size,
         "lut_mutation_rate":      best.params["lut_mutation_rate"],

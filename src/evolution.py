@@ -64,8 +64,20 @@ N_NODES   = Lattice3DNetwork.N_NODES   # 3 nodes per module: E, I, O
 def random_genome_pack(
     pop_size: int, Z: int, k: int,
     rng: torch.Generator, device: torch.device,
+    warm_start_input: bool = False,
 ) -> torch.Tensor:
     """Sample a uniformly random initial population.
+
+    Parameters
+    ----------
+    warm_start_input : if True, the E node (index 0) at z=0 is initialised to
+        read the sensory input from the start:
+          sel[*, 0, E, 0]  = P[7] (feedforward input)
+          sel[*, 0, E, 1:] = P[6] (self-recurrence for remaining slots)
+          lut[*, 0, E, :]  = [(i >> (k-1)) & 1 for i in range(2**k)]
+                              → E = input (MSB of LUT address), ignoring self bits
+        All other nodes (I, O) and all layers z>0 remain random.
+        Mutation can evolve E away from this warm start freely.
 
     Returns
     -------
@@ -82,6 +94,22 @@ def random_genome_pack(
         0, 2, (pop_size, Z, N_NODES, lut_size),
         generator=rng, device=device, dtype=torch.uint8,
     )
+
+    if warm_start_input:
+        # E node (index 0) at z=0: first selector reads input (P[7]),
+        # remaining selectors read self-recurrence (P[6]).
+        sel[:, 0, 0, 0] = 7          # P[7] = feedforward input
+        if k > 1:
+            sel[:, 0, 0, 1:] = 6     # P[6] = self-recurrence
+
+        # LUT: E = input (MSB of LUT address).
+        # With sel[0]=input as MSB: LUT[i] = 1 iff bit (k-1) of i is set.
+        input_lut = torch.tensor(
+            [(i >> (k - 1)) & 1 for i in range(lut_size)],
+            dtype=torch.uint8, device=device,
+        )
+        lut[:, 0, 0, :] = input_lut
+
     return torch.cat([sel, lut], dim=-1)
 
 
@@ -498,14 +526,66 @@ def _compute_fitness(
     sat_frac: torch.Tensor,
     w_silent: float,
     w_sat: float,
-) -> torch.Tensor:
-    """fitness = accuracy - w_silent * silent_frac - w_sat * sat_frac"""
-    return accs - w_silent * silent_frac - w_sat * sat_frac
+    val_accs: torch.Tensor = None,
+    val_gap_weight: float = 0.0,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Train accuracy minus activity penalties and optional train-vs-val gap penalty."""
+    fitness = accs - w_silent * silent_frac - w_sat * sat_frac
+    if val_accs is None or val_gap_weight <= 0.0:
+        return fitness, torch.zeros_like(accs)
+
+    val_gap = (accs - val_accs).clamp(min=0.0)
+    return fitness - val_gap_weight * val_gap, val_gap
 
 
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
+
+def _try_write_scene(
+    genomes: torch.Tensor,
+    Z: int, H: int, W: int, k: int,
+    distal_seed: int,
+    identity_seed: int,
+    use_identity: bool,
+    use_positional_cues: bool,
+    use_distal: bool,
+    live_scene_path: "Path",
+    live_meta: dict,
+) -> None:
+    """Write evo_data.js from the current best genome so the 3D viewer works immediately."""
+    try:
+        viewer_dir = Path(__file__).resolve().parent.parent / "viewer"
+        if str(viewer_dir) not in sys.path:
+            sys.path.insert(0, str(viewer_dir))
+        from visuals import build_scene as _build_scene  # type: ignore
+
+        net1 = build_lattice(
+            genomes[0:1].cpu(), Z, H, W, k,
+            distal_seed=distal_seed,
+            identity_seed=identity_seed,
+            use_identity=use_identity,
+            use_positional_cues=use_positional_cues,
+            use_distal=use_distal,
+            device=torch.device("cpu"),
+        )
+        scene = _build_scene(net1, batch_index=0)
+        payload = {
+            "scene": scene,
+            "experiment": (live_meta or {}).get("experiment", ""),
+            "task": (live_meta or {}).get("task", ""),
+            "history": [],
+            "train_acc": None,
+            "val_acc": None,
+        }
+        Path(live_scene_path).write_text(
+            "window.EVO_DATA = " + json.dumps(payload) + ";\n",
+            encoding="utf-8",
+        )
+        print(f"  [viewer] wrote initial scene → {live_scene_path}")
+    except Exception as exc:
+        print(f"  [viewer] Warning: could not write initial scene: {exc}")
+
 
 def evolve(
     pop_size: int,
@@ -520,22 +600,25 @@ def evolve(
     elite_size: int = 20,
     penalty_weights: tuple = (0.3, 0.3),
     use_crossover: bool = True,
-    X_val: torch.Tensor = None,    # optional held-out set — logged per generation but NOT used for ranking
+    X_val: torch.Tensor = None,    # optional held-out set
     y_val: torch.Tensor = None,
     stagnation_patience: int = 10,
     stagnation_inject_frac: float = 0.3,
     parallel_samples: bool = False,
     readout_decay: float = 0.0,
+    val_gap_weight: float = 0.0,
     seed: int = 42,
     use_identity: bool = True,
     use_positional_cues: bool = False,
     use_distal: bool = True,
     distal_seed: int = 0,
     identity_seed: int = 0,
+    warm_start_input: bool = False,
     device: torch.device = None,
     live_path: Path = None,
     live_meta: dict = None,
-) -> tuple[torch.Tensor, torch.Tensor, list[dict]]:
+    live_scene_path: Path = None,
+) -> tuple[torch.Tensor, torch.Tensor, list[dict], torch.Tensor]:
     """Run (μ+λ) elitist evolution for `n_generations` generations.
 
     Each generation ranks genomes on the full X_pool. This keeps selection
@@ -543,7 +626,8 @@ def evolve(
     Exploration comes from mutation, crossover, elitism, and stagnation injection.
 
     If X_val / y_val are provided they are evaluated each generation for
-    observability (logged in history as val_acc) but play no role in selection.
+    observability. When val_gap_weight > 0, the positive train-vs-val gap also
+    reduces fitness, which discourages selecting overfit genomes.
 
     Parameters
     ----------
@@ -559,21 +643,28 @@ def evolve(
     elite_size             : top genomes kept unchanged each generation (~20% of pop_size)
     penalty_weights        : (w_silent, w_saturated)
     use_crossover          : if True, cross elite pairs before mutation
-    X_val / y_val          : optional held-out set; logged per generation, not used for ranking
+    X_val / y_val          : optional held-out set; logged each generation and, when
+                             val_gap_weight > 0, used for the train-vs-val gap penalty
     stagnation_patience    : generations without improvement before injecting diversity
     stagnation_inject_frac : fraction of population replaced with fresh random genomes
                              on stagnation; bottom-ranked genomes are replaced first
     parallel_samples       : if True, run the full training pool × pop_size genomes in one
                              forward pass (faster on GPU, but uses P×B times more VRAM)
+    readout_decay          : leaky readout factor in [0, 1]
+    val_gap_weight         : subtracts val_gap_weight * max(0, train_acc - val_acc)
+                             from fitness; requires X_val / y_val when > 0
     seed                   : RNG seed
     use_identity, use_positional_cues, use_distal : ablation flags
     distal_seed, identity_seed : seeds for fixed structural bits
+    warm_start_input  : if True, E node at z=0 starts wired to the sensory input
+                        (see random_genome_pack for full details)
     device            : torch device
 
     Returns
     -------
-    final_genomes    : [pop_size, Z, 3, k + 2**k] sorted best→worst on full pool
-    final_accs       : [pop_size] float
+    final_genomes    : [pop_size, Z, 3, k + 2**k] sorted best→worst on the final
+                       ranking criterion used for selection
+    final_accs       : [pop_size] train-pool accuracy in the same order as final_genomes
     history          : list[dict] — per-generation metrics
     best_assignment  : [1, W] long — WTA column assignment of the best genome,
                        computed on the full training pool; pass to classify_wta
@@ -596,6 +687,8 @@ def evolve(
         raise ValueError("X_val and y_val must both be provided or both be None")
     if not (0.0 <= readout_decay <= 1.0):
         raise ValueError(f"readout_decay must be in [0, 1], got {readout_decay}")
+    if val_gap_weight < 0.0:
+        raise ValueError(f"val_gap_weight must be >= 0, got {val_gap_weight}")
 
     # Resolve mutation rates
     lut_rate = lut_mutation_rate if lut_mutation_rate is not None else mutation_rate
@@ -606,36 +699,40 @@ def evolve(
     rng = torch.Generator(device=dev)
     rng.manual_seed(seed)
 
-    genomes    = random_genome_pack(pop_size, Z, k, rng, dev)
+    genomes = random_genome_pack(pop_size, Z, k, rng, dev, warm_start_input=warm_start_input)
     n_children = pop_size - elite_size
-    n_inject     = max(1, int(pop_size * stagnation_inject_frac))
+    n_inject = max(1, int(pop_size * stagnation_inject_frac))
 
     val_available = X_val is not None
+    if val_gap_weight > 0.0 and not val_available:
+        raise ValueError("val_gap_weight > 0 requires X_val and y_val")
     if val_available:
         X_val = X_val.to(dev)
         y_val = y_val.to(dev)
 
-    print(f"Ranking: full train pool n={P} | elite={elite_size} | "
-          f"crossover={'on' if use_crossover else 'off'} | "
-          f"lut_rate={lut_rate} sel_rate={sel_rate} | "
-          f"penalty w_silent={w_silent} w_sat={w_sat} | "
-          f"readout_decay={readout_decay:.2f} | "
-          f"stagnation patience={stagnation_patience} inject={n_inject} | "
-          f"parallel_samples={'on' if parallel_samples else 'off'} | "
-          f"val logging={'on' if val_available else 'off'}")
+    print(
+        f"Ranking: full train pool n={P} | elite={elite_size} | "
+        f"crossover={'on' if use_crossover else 'off'} | "
+        f"lut_rate={lut_rate} sel_rate={sel_rate} | "
+        f"penalty w_silent={w_silent} w_sat={w_sat} | "
+        f"readout_decay={readout_decay:.2f} | "
+        f"val_gap_weight={val_gap_weight:.2f} | "
+        f"stagnation patience={stagnation_patience} inject={n_inject} | "
+        f"parallel_samples={'on' if parallel_samples else 'off'} | "
+        f"warm_start_input={'on' if warm_start_input else 'off'} | "
+        f"val logging={'on' if val_available else 'off'}"
+    )
 
     history: list[dict] = []
-    stagnation_count  = 0
+    stagnation_count = 0
     best_fitness_ever = -float("inf")
 
     for gen in range(n_generations):
-        # Rank on the full training pool every generation
         X_batch = X_pool
         y_batch = y_pool
+        net = None
 
-        # Rank on training pool using WTA readout
         if parallel_samples:
-            # All N samples × B genomes in one forward pass
             accs, silent_frac, sat_frac, assignments = _evaluate_wta_parallel(
                 genomes, X_batch, y_batch, n_classes,
                 Z, H, W, k,
@@ -660,38 +757,11 @@ def evolve(
             accs, silent_frac, sat_frac, assignments = evaluate_wta(
                 net, X_batch, y_batch, n_classes, readout_decay=readout_decay
             )
-        fitness = _compute_fitness(accs, silent_frac, sat_frac, w_silent, w_sat)
 
-        # Sort best → worst
-        order       = torch.argsort(-fitness, stable=True)
-        genomes     = genomes[order]
-        fitness     = fitness[order]
-        accs        = accs[order]
-        silent_frac = silent_frac[order]
-        sat_frac    = sat_frac[order]
-        assignments = assignments[order]
-
-        # ---- Stagnation detection -------------------------------------------
-        injected = False
-        if float(fitness[0]) > best_fitness_ever + 1e-6:
-            best_fitness_ever = float(fitness[0])
-            stagnation_count  = 0
-        else:
-            stagnation_count += 1
-
-        if stagnation_count >= stagnation_patience:
-            # Replace bottom n_inject genomes with fresh random individuals
-            fresh   = random_genome_pack(n_inject, Z, k, rng, dev)
-            genomes = torch.cat([genomes[:pop_size - n_inject], fresh], dim=0)
-            stagnation_count = 0
-            injected = True
-
-        # Optional: evaluate best genome on held-out val set for observability.
-        # Re-use the assignment computed on this generation's training batch.
-        val_acc = None
-        if val_available:
-            val_net = build_lattice(
-                genomes[0:1], Z, H, W, k,
+        val_accs = None
+        if val_available and val_gap_weight > 0.0:
+            val_net = net if net is not None else build_lattice(
+                genomes, Z, H, W, k,
                 distal_seed=distal_seed,
                 identity_seed=identity_seed,
                 use_identity=use_identity,
@@ -699,33 +769,91 @@ def evolve(
                 use_distal=use_distal,
                 device=dev,
             )
-            val_acc = float(
-                classify_wta(
-                    val_net, X_val, y_val, assignments[0:1], n_classes, readout_decay=readout_decay
-                )[0]
+            val_accs, _, _ = classify_wta(
+                val_net, X_val, y_val, assignments, n_classes, readout_decay=readout_decay
             )
+
+        fitness, val_gaps = _compute_fitness(
+            accs,
+            silent_frac,
+            sat_frac,
+            w_silent,
+            w_sat,
+            val_accs=val_accs,
+            val_gap_weight=val_gap_weight,
+        )
+
+        order = torch.argsort(-fitness, stable=True)
+        genomes = genomes[order]
+        fitness = fitness[order]
+        accs = accs[order]
+        silent_frac = silent_frac[order]
+        sat_frac = sat_frac[order]
+        assignments = assignments[order]
+        val_gaps = val_gaps[order]
+        if val_accs is not None:
+            val_accs = val_accs[order]
+
+        injected = False
+        if float(fitness[0]) > best_fitness_ever + 1e-6:
+            best_fitness_ever = float(fitness[0])
+            stagnation_count = 0
+        else:
+            stagnation_count += 1
+
+        if stagnation_count >= stagnation_patience:
+            fresh = random_genome_pack(n_inject, Z, k, rng, dev, warm_start_input=warm_start_input)
+            genomes = torch.cat([genomes[:pop_size - n_inject], fresh], dim=0)
+            stagnation_count = 0
+            injected = True
+
+        val_acc = None
+        val_gap = None
+        if val_available:
+            if val_accs is not None:
+                val_acc = float(val_accs[0])
+            else:
+                val_net = build_lattice(
+                    genomes[0:1], Z, H, W, k,
+                    distal_seed=distal_seed,
+                    identity_seed=identity_seed,
+                    use_identity=use_identity,
+                    use_positional_cues=use_positional_cues,
+                    use_distal=use_distal,
+                    device=dev,
+                )
+                val_acc = float(
+                    classify_wta(
+                        val_net, X_val, y_val, assignments[0:1], n_classes,
+                        readout_decay=readout_decay,
+                    )[0]
+                )
+            val_gap = max(0.0, float(accs[0]) - val_acc)
 
         assign_counts, assign_used, assign_top_class, assign_top_frac = assignment_diagnostics(
             assignments[0], n_classes
         )
 
         record = {
-            "gen":                    gen,
-            "best_acc":               float(accs[0]),
-            "mean_acc":               float(accs.mean()),
-            "best_fitness":           float(fitness[0]),
-            "mean_fitness":           float(fitness.mean()),
-            "best_silent_frac":       float(silent_frac[0]),
-            "best_sat_frac":          float(sat_frac[0]),
+            "gen": gen,
+            "best_acc": float(accs[0]),
+            "mean_acc": float(accs.mean()),
+            "best_fitness": float(fitness[0]),
+            "mean_fitness": float(fitness.mean()),
+            "best_silent_frac": float(silent_frac[0]),
+            "best_sat_frac": float(sat_frac[0]),
             "best_assignment_counts": assign_counts,
-            "best_assignment_used":   assign_used,
+            "best_assignment_used": assign_used,
             "best_assignment_top_class": assign_top_class,
-            "best_assignment_top_frac":  assign_top_frac,
-            "injected":               injected,
-            "best_genome":            genomes[0].cpu().tolist(),  # [Z, 3, k+2**k]
+            "best_assignment_top_frac": assign_top_frac,
+            "best_assignment": assignments[0].cpu().tolist(),
+            "injected": injected,
+            "best_genome": genomes[0].cpu().tolist(),
         }
         if val_available:
             record["val_acc"] = val_acc
+            record["best_val_gap"] = val_gap
+            record["best_val_gap_penalty"] = val_gap_weight * val_gap
         history.append(record)
 
         if live_path is not None:
@@ -737,7 +865,21 @@ def evolve(
             except Exception:
                 pass
 
-        val_str = f" | val={val_acc:.1%}" if val_available else ""
+        if live_scene_path is not None and gen == 0:
+            _try_write_scene(
+                genomes, Z, H, W, k,
+                distal_seed=distal_seed,
+                identity_seed=identity_seed,
+                use_identity=use_identity,
+                use_positional_cues=use_positional_cues,
+                use_distal=use_distal,
+                live_scene_path=live_scene_path,
+                live_meta=live_meta,
+            )
+
+        val_str = ""
+        if val_available:
+            val_str = f" | val={val_acc:.1%} gap={val_gap:.1%}"
         assign_str = (
             f" | assign_used={assign_used}/{n_classes}"
             f" top={assign_top_class}:{assign_top_frac:.1%}"
@@ -753,28 +895,20 @@ def evolve(
             + (" [inject]" if injected else "")
         )
 
-        # ---- (μ+λ) selection ------------------------------------------------
-        # Elites: top elite_size genomes pass through unchanged
-        elites = genomes[:elite_size]                           # [elite_size, Z, 3, G]
-
-        # Sample parent pairs for children (with replacement from elites)
-        idx_a    = torch.randint(0, elite_size, (n_children,), generator=rng, device=dev)
-        idx_b    = torch.randint(0, elite_size, (n_children,), generator=rng, device=dev)
-        parents_a = elites[idx_a]                              # [n_children, Z, 3, G]
+        elites = genomes[:elite_size]
+        idx_a = torch.randint(0, elite_size, (n_children,), generator=rng, device=dev)
+        idx_b = torch.randint(0, elite_size, (n_children,), generator=rng, device=dev)
+        parents_a = elites[idx_a]
         parents_b = elites[idx_b]
 
-        # Crossover then mutate
         if use_crossover:
             children = crossover(parents_a, parents_b, rng)
         else:
             children = parents_a.clone()
 
         children = mutate(children, k, lut_rate, sel_rate, rng)
-
-        # New population: elites first (sorted), then children
         genomes = torch.cat([elites, children], dim=0)
 
-    # Final evaluation on the full training pool
     final_net = build_lattice(
         genomes, Z, H, W, k,
         distal_seed=distal_seed,
@@ -784,11 +918,27 @@ def evolve(
         use_distal=use_distal,
         device=dev,
     )
-    final_accs, _, _, final_assignments = evaluate_wta(
+    final_accs, final_silent_frac, final_sat_frac, final_assignments = evaluate_wta(
         final_net, X_pool, y_pool, n_classes, readout_decay=readout_decay
     )
-    order = torch.argsort(-final_accs, stable=True)
-    best_assignment = final_assignments[order[0]:order[0] + 1]  # [1, W]
+    final_val_accs = None
+    if val_available and val_gap_weight > 0.0:
+        final_val_accs, _, _ = classify_wta(
+            final_net, X_val, y_val, final_assignments, n_classes,
+            readout_decay=readout_decay,
+        )
+    final_fitness, _ = _compute_fitness(
+        final_accs,
+        final_silent_frac,
+        final_sat_frac,
+        w_silent,
+        w_sat,
+        val_accs=final_val_accs,
+        val_gap_weight=val_gap_weight,
+    )
+    final_order_metric = final_fitness if val_gap_weight > 0.0 else final_accs
+    order = torch.argsort(-final_order_metric, stable=True)
+    best_assignment = final_assignments[order[0]:order[0] + 1]
 
     return genomes[order], final_accs[order], history, best_assignment
 

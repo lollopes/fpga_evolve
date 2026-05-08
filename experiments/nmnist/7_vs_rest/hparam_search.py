@@ -17,7 +17,7 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[3]
 EXP_DIR   = Path(__file__).resolve().parent
 sys.path.append(str(REPO_ROOT))
 

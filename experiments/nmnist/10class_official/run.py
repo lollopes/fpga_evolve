@@ -1,14 +1,14 @@
 """
-experiments/shd_english/10class_official/run.py — Evolve a Lattice3DNetwork on
-all 10 English spoken digits from SHD, using the official train split for
-selection and the official test split for final evaluation.
+experiments/nmnist/10class_official/run.py — Evolve a Lattice3DNetwork on all
+10 N-MNIST digits, using the official train split for selection and the official
+test split for final evaluation.
 
 All hyperparameters live in config.json next to this file. Results are written to
-    experiments/shd_english/10class_official/results/best_genome.pt   — best genome + metadata
-    experiments/shd_english/10class_official/results/history.json     — per-generation metrics
+    experiments/nmnist/10class_official/results/best_genome.pt   — best genome + metadata
+    experiments/nmnist/10class_official/results/history.json     — per-generation metrics
 
 Run from repo root:
-    python experiments/shd_english/10class_official/run.py
+    python experiments/nmnist/10class_official/run.py
 """
 
 import json
@@ -21,7 +21,7 @@ sys.path.append(str(REPO_ROOT))
 
 import torch
 
-from src.dataset import load_shd, n_classes_for_task
+from src.dataset import load_nmnist, n_classes_for_task
 from src.evolution import build_lattice, classify_wta, evolve
 
 with open(EXP_DIR / "config.json") as f:
@@ -43,17 +43,17 @@ N_TRAIN_PER_CLASS = cfg["n_train_per_class"]
 N_TEST_PER_CLASS = cfg["n_test_per_class"]
 VAL_FRACTION = cfg.get("val_fraction", 0.0)
 N_TIME_BINS = cfg["n_time_bins"]
+GRID_SIZE = cfg["grid_size"]
+FIRST_SACCADE_ONLY = cfg["first_saccade_only"]
 SEED = cfg["seed"]
 Z = cfg["z"]
-GRID_HEIGHT = cfg["grid_height"]
-GRID_WIDTH = cfg["grid_width"]
 K = cfg["k"]
 USE_IDENTITY = cfg["use_identity"]
 USE_POSITIONAL_CUES = cfg["use_positional_cues"]
 USE_DISTAL = cfg["use_distal"]
 DISTAL_SEED = cfg["distal_seed"]
 IDENTITY_SEED = cfg["identity_seed"]
-READOUT_DECAY = cfg.get("readout_decay", 0.9)
+READOUT_DECAY = cfg.get("readout_decay", 0.0)
 VAL_GAP_WEIGHT = cfg.get("val_gap_weight", 0.0)
 WARM_START_INPUT = cfg.get("warm_start_input", False)
 
@@ -97,28 +97,28 @@ def split_train_val_stratified(X_all, y_all, n_classes, val_fraction, seed):
 
 
 print(
-    f"Task: {TASK} | dataset=SHD English digits official split | "
+    f"Task: {TASK} | dataset=N-MNIST official split | "
     f"pop={POP_SIZE} gens={N_GENERATIONS} | "
-    f"Z={Z} grid={GRID_HEIGHT}x{GRID_WIDTH} k={K} T={N_TIME_BINS} | "
+    f"Z={Z} grid_size={GRID_SIZE} k={K} T={N_TIME_BINS} | "
     f"readout_decay={READOUT_DECAY:.2f} val_gap_weight={VAL_GAP_WEIGHT:.2f} | "
-    f"train/class={N_TRAIN_PER_CLASS} test/class={N_TEST_PER_CLASS} "
-    f"val_fraction={VAL_FRACTION} | device={DEVICE}"
+    f"first_saccade_only={FIRST_SACCADE_ONLY} train/class={N_TRAIN_PER_CLASS} "
+    f"test/class={N_TEST_PER_CLASS} val_fraction={VAL_FRACTION} | device={DEVICE}"
 )
 
-X_train, y_train, X_test, y_test = load_shd(
+X_train, y_train, X_test, y_test = load_nmnist(
     task=TASK,
     n_time_bins=N_TIME_BINS,
+    grid_size=GRID_SIZE,
     n_train_per_class=N_TRAIN_PER_CLASS,
     n_val_per_class=N_TEST_PER_CLASS,
     seed=SEED,
     device=torch.device("cpu"),
-    include_test_split=True,
+    first_saccade_only=FIRST_SACCADE_ONLY,
 )
 
 F = X_train.shape[2]
-H = GRID_HEIGHT
-W = GRID_WIDTH
-assert H * W == F, f"Configured grid {H}x{W} does not match feature dim {F}"
+H = W = int(F ** 0.5)
+assert H * W == F, f"Feature dim {F} is not a perfect square"
 assert X_test.shape[2] == F, f"Test feature dim {X_test.shape[2]} does not match train dim {F}"
 
 X_train_4d = X_train.reshape(-1, N_TIME_BINS, H, W)
@@ -133,19 +133,16 @@ y_val = y_val_cpu.to(DEVICE) if y_val_cpu is not None else None
 X_test = X_test.reshape(-1, N_TIME_BINS, H, W).to(DEVICE)
 y_test = y_test.to(DEVICE)
 
-print(f"Input layout: H={H} W={W} ({H*W} neurons/layer)")
+print(f"Spatial resolution: H={H} W={W} ({H*W} neurons/layer)")
 print(
-    f"Train pool   : {tuple(X_pool.shape)}  "
-    f"active fraction={float(X_pool.float().mean()):.3f}"
+    f"Train pool   : {tuple(X_pool.shape)}  active fraction={float(X_pool.float().mean()):.3f}"
 )
 if X_val is not None:
     print(
-        f"Val (train) : {tuple(X_val.shape)}  "
-        f"active fraction={float(X_val.float().mean()):.3f}"
+        f"Val (train) : {tuple(X_val.shape)}  active fraction={float(X_val.float().mean()):.3f}"
     )
 print(
-    f"Test official: {tuple(X_test.shape)}  "
-    f"active fraction={float(X_test.float().mean()):.3f}"
+    f"Test official: {tuple(X_test.shape)}  active fraction={float(X_test.float().mean()):.3f}"
 )
 
 pool_counts = torch.bincount(y_pool, minlength=N_CLASSES)
@@ -247,14 +244,16 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 genome_path = RESULTS_DIR / "best_genome.pt"
 payload = {
     "genome": final_genomes[0].cpu(),
-    "dataset": "shd_english",
+    "dataset": "nmnist",
     "split": "official_train_test",
     "Z": Z,
     "H": H,
     "W": W,
     "k": K,
+    "grid_size": GRID_SIZE,
     "n_time_bins": N_TIME_BINS,
     "task": TASK,
+    "first_saccade_only": FIRST_SACCADE_ONLY,
     "readout_decay": READOUT_DECAY,
     "val_fraction": VAL_FRACTION,
     "val_gap_weight": VAL_GAP_WEIGHT,

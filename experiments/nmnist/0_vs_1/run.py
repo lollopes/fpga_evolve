@@ -1,12 +1,12 @@
 """
-experiments/7_vs_rest/run.py — Evolve a Lattice3DNetwork on N-MNIST digit 7 vs all others.
+experiments/0_vs_1/run.py — Evolve a Lattice3DNetwork on N-MNIST digit 0 vs digit 1.
 
 All hyperparameters live in config.json next to this file.  Results are written to
-    experiments/7_vs_rest/results/best_genome.pt   — best genome + metadata
-    experiments/7_vs_rest/results/history.json     — per-generation metrics
+    experiments/0_vs_1/results/best_genome.pt   — best genome + metadata
+    experiments/0_vs_1/results/history.json     — per-generation metrics
 
 Run from repo root:
-    python experiments/7_vs_rest/run.py
+    python experiments/0_vs_1/run.py
 """
 
 import json
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 # ── repo root on sys.path so `src.*` imports resolve ────────────────────────
-REPO_ROOT   = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT   = Path(__file__).resolve().parents[3]
 EXP_DIR     = Path(__file__).resolve().parent
 sys.path.append(str(REPO_ROOT))
 
@@ -52,6 +52,7 @@ USE_POSITIONAL_CUES  = cfg["use_positional_cues"]
 USE_DISTAL           = cfg["use_distal"]
 DISTAL_SEED          = cfg["distal_seed"]
 IDENTITY_SEED        = cfg["identity_seed"]
+WARM_START_INPUT     = cfg.get("warm_start_input", False)
 
 DEVICE               = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RESULTS_DIR          = EXP_DIR / "results"
@@ -131,12 +132,13 @@ final_genomes, final_accs, history, best_assignment = evolve(
     use_distal=USE_DISTAL,
     distal_seed=DISTAL_SEED,
     identity_seed=IDENTITY_SEED,
+    warm_start_input=WARM_START_INPUT,
     device=DEVICE,
     live_path=REPO_ROOT / "viewer" / "evo_live.json",
     live_meta={"experiment": EXP_DIR.name, "task": TASK},
 )
 
-# ── val evaluation on best genome ─────────────────────────────────────────────
+# ── val evaluation on best genome using its WTA assignment ────────────────────
 best_net = build_lattice(
     final_genomes[0:1], Z, H, W, K,
     distal_seed=DISTAL_SEED,

@@ -52,6 +52,8 @@ USE_DISTAL = cfg["use_distal"]
 DISTAL_SEED = cfg["distal_seed"]
 IDENTITY_SEED = cfg["identity_seed"]
 READOUT_DECAY = cfg.get("readout_decay", 0.9)
+VAL_GAP_WEIGHT = cfg.get("val_gap_weight", 0.0)
+WARM_START_INPUT = cfg.get("warm_start_input", False)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RESULTS_DIR = EXP_DIR / "results"
@@ -63,7 +65,7 @@ assert n_classes_for_task(TASK) == N_CLASSES, (
 print(
     f"Task: {TASK} | dataset=SHD English digits | pop={POP_SIZE} gens={N_GENERATIONS} | "
     f"Z={Z} grid={GRID_HEIGHT}x{GRID_WIDTH} k={K} T={N_TIME_BINS} | "
-    f"readout_decay={READOUT_DECAY:.2f} | "
+    f"readout_decay={READOUT_DECAY:.2f} val_gap_weight={VAL_GAP_WEIGHT:.2f} | "
     f"pool/class={N_POOL_PER_CLASS} val_fraction={VAL_FRACTION} | device={DEVICE}"
 )
 
@@ -122,6 +124,7 @@ final_genomes, final_accs, history, best_assignment = evolve(
     stagnation_inject_frac=STAGNATION_INJECT_FRAC,
     parallel_samples=PARALLEL_SAMPLES,
     readout_decay=READOUT_DECAY,
+    val_gap_weight=VAL_GAP_WEIGHT,
     X_val=X_val,
     y_val=y_val,
     seed=SEED,
@@ -130,9 +133,11 @@ final_genomes, final_accs, history, best_assignment = evolve(
     use_distal=USE_DISTAL,
     distal_seed=DISTAL_SEED,
     identity_seed=IDENTITY_SEED,
+    warm_start_input=WARM_START_INPUT,
     device=DEVICE,
     live_path=REPO_ROOT / "viewer" / "evo_live.json",
     live_meta={"experiment": EXP_DIR.name, "task": TASK},
+    live_scene_path=REPO_ROOT / "viewer" / "evo_data.js",
 )
 
 best_net = build_lattice(
@@ -177,6 +182,7 @@ torch.save({
     "n_time_bins": N_TIME_BINS,
     "task": TASK,
     "readout_decay": READOUT_DECAY,
+    "val_gap_weight": VAL_GAP_WEIGHT,
     "best_assignment": best_assignment.cpu(),
     "distal_seed": DISTAL_SEED,
     "identity_seed": IDENTITY_SEED,

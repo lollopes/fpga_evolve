@@ -17,6 +17,7 @@
   "val_fraction":        0.2,
   "n_time_bins":         10,
   "readout_decay":      0.9,
+  "val_gap_weight":      0.0,
   "seed":                42,
 
   "z":                   4,
@@ -27,5 +28,6 @@
   "use_positional_cues": true,
   "use_distal":          true,
   "distal_seed":         0,
-  "identity_seed":       0
+  "identity_seed":       0,
+  "warm_start_input":    true
 }

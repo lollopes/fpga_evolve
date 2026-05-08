@@ -23,11 +23,12 @@
   #app {
     display: grid;
     grid-template-columns: 1fr 1fr 1.4fr;
-    grid-template-rows: 44px 1fr 1fr;
+    grid-template-rows: 44px 38px 1fr 1fr;
     grid-template-areas:
       "header  header  header"
+      "ctrl    ctrl    ctrl"
       "network fitness genome"
-      "network activity genome";
+      "wta     activity genome";
     height: 100%;
   }
 
@@ -78,13 +79,40 @@
     font-size: 9.5px; color: var(--muted);
   }
 
+  /* ── WTA panel (bottom-left) ─────────────────────── */
+  #wta-wrap {
+    grid-area: wta;
+    display: flex; flex-direction: column;
+    box-sizing: border-box; padding: 6px 12px 6px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    min-height: 0;
+  }
+  #wta-wrap h2 {
+    font-size: 10px; margin: 0 0 3px; flex: 0 0 auto;
+    color: var(--accent); letter-spacing: 0.1em;
+    font-weight: 700; text-transform: uppercase;
+  }
+  #wta-canvas {
+    flex: 1; display: block; width: 100%;
+    min-height: 0;
+    background: var(--canvas-bg);
+    border: 1px solid var(--border); border-radius: 3px;
+  }
+  #wta-legend {
+    display: flex; gap: 8px; margin-top: 4px; flex: 0 0 auto;
+    font-size: 9.5px; color: var(--muted); flex-wrap: wrap;
+  }
+
   /* ── Chart panels (middle column) ────────────────── */
   .chart-panel {
     display: flex; flex-direction: column;
     box-sizing: border-box; padding: 8px 12px 8px;
     background: var(--panel); min-height: 0;
   }
-  #activity-panel { border-top: 1px solid var(--border); }
+  #fitness-panel  { grid-area: fitness; }
+  #activity-panel { grid-area: activity; border-top: 1px solid var(--border); }
   .chart-panel h2 {
     font-size: 10px; margin: 0 0 4px; flex: 0 0 auto;
     color: var(--accent); letter-spacing: 0.1em;
@@ -92,6 +120,7 @@
   }
   .chart-canvas {
     flex: 1; display: block; width: 100%;
+    min-height: 0;
     background: var(--canvas-bg);
     border: 1px solid var(--border); border-radius: 3px;
   }
@@ -118,6 +147,7 @@
   }
   #genome-canvas {
     flex: 1; display: block; width: 100%;
+    min-height: 0;
     background: var(--canvas-bg);
     border: 1px solid var(--border); border-radius: 3px;
   }
@@ -127,6 +157,42 @@
   }
 
   .err { color: #fca5a5; padding: 24px; }
+
+  /* ── Controls bar ─────────────────────────────────── */
+  #ctrl-bar {
+    grid-area: ctrl;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .ctrl-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .ctrl-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
+  .ctrl-lbl { font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+  #gen-readout { font-size: 9.5px; color: var(--accent); min-width: 52px; }
+  .ctrl-btn {
+    font-size: 11px; background: none; border: 1px solid var(--border);
+    color: var(--text); border-radius: 3px; padding: 1px 7px;
+    cursor: pointer; line-height: 1.6;
+  }
+  .ctrl-btn:hover { border-color: var(--muted); color: var(--accent); }
+  .ctrl-btn.active { border-color: var(--accent); color: var(--accent); }
+  input[type=range].cslider {
+    -webkit-appearance: none; appearance: none;
+    height: 3px; border-radius: 2px; background: var(--border);
+    outline: none; cursor: pointer;
+  }
+  input[type=range].cslider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 11px; height: 11px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+  input[type=range].cslider::-moz-range-thumb {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+  }
+  #gen-slider { width: 150px; }
+  .vis-slider { width: 72px; }
 </style>
 </head>
 <body>
@@ -138,10 +204,47 @@
     <div id="live-badge"><div id="live-dot"></div><span id="live-label">—</span></div>
   </div>
 
+  <div id="ctrl-bar">
+    <div class="ctrl-group">
+      <button class="ctrl-btn" id="btn-reset" title="Go to generation 0">↺</button>
+      <button class="ctrl-btn" id="btn-play"  title="Play / Pause">▶</button>
+      <button class="ctrl-btn" id="btn-end"   title="Jump to latest">⏭</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">GEN</span>
+      <input type="range" class="cslider" id="gen-slider" min="0" max="0" value="0" step="1">
+      <span id="gen-readout">0 / 0</span>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">edge</span>
+      <input type="range" class="cslider vis-slider" id="edge-slider" min="0.1" max="6" step="0.1" value="0.85">
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">node</span>
+      <input type="range" class="cslider vis-slider" id="node-slider" min="0.2" max="5" step="0.1" value="1.0">
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">layers</span>
+      <input type="range" class="cslider vis-slider" id="zdist-slider" min="1" max="20" step="0.5" value="6">
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">mod spacing</span>
+      <input type="range" class="cslider vis-slider" id="modspread-slider" min="0.05" max="3" step="0.05" value="1">
+    </div>
+  </div>
+
   <div id="network-wrap">
     <canvas id="network-canvas"></canvas>
     <div id="net-hover"></div>
     <div id="net-hint">drag=rotate · wheel=zoom · dbl=reset</div>
+  </div>
+
+  <div id="wta-wrap">
+    <h2>WTA column assignment</h2>
+    <canvas id="wta-canvas"></canvas>
+    <div id="wta-legend"></div>
   </div>
 
   <div class="chart-panel" id="fitness-panel">
@@ -163,7 +266,7 @@
     <div class="chart-legend">
       <div class="legend-item"><div class="ls" style="background:#ef4444;"></div>silent frac</div>
       <div class="legend-item"><div class="ls" style="background:#f97316;"></div>sat frac</div>
-      <div class="legend-item"><div class="ls" style="background:#facc15;"></div>best fitness</div>
+      <div class="legend-item"><div class="ls" style="background:#facc15;"></div>fitness →</div>
     </div>
   </div>
 
@@ -181,6 +284,24 @@
   const D = window.EVO_DATA || null;
   const S    = D ? D.scene : null;
   const hist = D ? (D.history || []) : [];
+
+  // Mutable state for live network updates
+  let currentEdges = S ? S.edges : [];
+  let liveZ        = null;   // null → use S.Z; number → genome's Z
+  let drawNetFn    = null;   // set once network canvas is initialised
+
+  // Visual controls (sliders)
+  let zScale    = 6;
+  let edgeWidth = 0.85;
+  let nodeScale = 1.0;
+  let modScale  = 1.0;   // module-centre spacing scale; EIO offsets stay fixed
+
+  let updateCentroidsFn = null;  // set inside if(S)
+
+  // Playback / scrubbing
+  let viewGen   = Math.max(0, hist.length - 1);
+  let isPlaying = false;
+  let playTimer = null;
 
   // ── Header ──────────────────────────────────────────────────────────────
   const metaRow = document.getElementById('meta-row');
@@ -226,6 +347,12 @@
     '#2563eb','#8b5cf6','#ea580c','#e2e8f0',
   ];
 
+  // ── Per-class colours for WTA assignment heatmap ────────────────────────
+  const CLASS_COLORS = [
+    '#ef4444','#fb923c','#fbbf24','#a3e635','#34d399',
+    '#22d3ee','#60a5fa','#a78bfa','#f472b6','#94a3b8',
+  ];
+
   function lutFuncId(lut) {
     let key = 0;
     for (let i = 0; i < lut.length; i++) key += lut[i] * (1 << i);
@@ -235,7 +362,75 @@
     return k === 2 ? (LUT2_NAMES[fid] || '?') : `f${fid}`;
   }
   function funcColor(fid, k) {
-    return k === 2 ? (LUT2_COLORS[fid] || '#475569') : '#475569';
+    if (k === 2) return LUT2_COLORS[fid] || '#475569';
+    // For k>2: spread fid across hue via golden angle so each function gets a
+    // unique, stable colour regardless of how many functions exist.
+    const hue = (fid * 137.508) % 360;
+    return `hsl(${hue.toFixed(1)},55%,35%)`;
+  }
+
+  // ── Rebuild edges from a live best_genome ──────────────────────────────
+  function buildEdgesFromGenome(genome) {
+    if (!S) return [];
+    const sp = S.spacing;          // [SPACING_X, SPACING_Y, SPACING_Z]
+    const no = S.node_offsets;     // [[ox,oy,oz], ...]
+    const kc = S.kind_colors;
+    const Z_g = genome.length;
+
+    function mc(x,y,z){ return [x*sp[0], y*sp[1], z*sp[2]]; }
+    function nodePos(x,y,z,n){
+      const [cx,cy,cz]=mc(x,y,z),[ox,oy,oz]=no[n];
+      return [cx+ox, cy+oy, cz+oz];
+    }
+    function resolveSource(x,y,z,p){
+      if(p<6){
+        const offs=[[-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]];
+        const kinds=['lateral','lateral','lateral','lateral','vertical_up','vertical_down'];
+        const[dx,dy,dz]=offs[p],[nx,ny,nz]=[x+dx,y+dy,z+dz];
+        if(nx>=0&&nx<S.W&&ny>=0&&ny<S.H&&nz>=0&&nz<Z_g) return[mc(nx,ny,nz),kinds[p]];
+        return[null,'zero'];
+      }
+      if(p===6) return[mc(x,y,z),'self'];
+      if(p===7){
+        if(z===0) return[[x*sp[0],y*sp[1],-sp[2]],'feedforward'];
+        return[null,'zero'];
+      }
+      if(p===8||p===9){
+        if(!S.use_distal) return[null,'zero'];
+        const di=S.distal_idx[z]&&S.distal_idx[z][y]&&S.distal_idx[z][y][x];
+        if(!di) return[null,'zero'];
+        const[sz,sy,sx]=di[p-8];
+        if(sz>=Z_g) return[null,'zero'];
+        return[mc(sx,sy,sz),`distal${p-8}`];
+      }
+      if(p===10||p===11){
+        if(!S.use_identity) return[null,'zero'];
+        return[mc(x,y,z),`identity${p-10}`];
+      }
+      if(p===12||p===13){
+        if(!S.use_positional_cues) return[null,'zero'];
+        return[mc(x,y,z),p===12?'positional_x':'positional_y'];
+      }
+      return[null,'zero'];
+    }
+
+    const edges=[];
+    for(let z=0;z<Z_g;z++){
+      for(let y=0;y<S.H;y++){
+        for(let x=0;x<S.W;x++){
+          for(let n=0;n<3;n++){
+            const target=nodePos(x,y,z,n);
+            for(let s=0;s<S.k;s++){
+              const p=genome[z][n][s];
+              const[src,kind]=resolveSource(x,y,z,p);
+              if(src===null) continue;
+              edges.push({from:src,to:target,kind,color:kc[kind]||'#888888'});
+            }
+          }
+        }
+      }
+    }
+    return edges;
   }
 
   // ── 3D champion network ─────────────────────────────────────────────────
@@ -244,15 +439,41 @@
     const ctx = cv.getContext('2d');
     const hov = document.getElementById('net-hover');
 
-    let cx0=0, cy0=0, cz0=0;
-    for (const n of S.nodes) { cx0+=n.pos[0]; cy0+=n.pos[1]; cz0+=n.pos[2]; }
-    cx0/=S.nodes.length; cy0/=S.nodes.length; cz0/=S.nodes.length;
+    // cz0 is fixed; cx0/cy0 are recomputed whenever modScale changes
+    let cz0=0;
+    for (const n of S.nodes) cz0+=n.pos[2];
+    cz0/=S.nodes.length;
+    let cx0=0, cy0=0;
 
-    const HOME = { rotX:-0.55, rotY:0.7, zoom:1.0, panX:0, panY:0 };
+    // Recompute cx0/cy0 with current modScale so the view stays centred.
+    // Each node position = module_centre + intra-module offset.
+    // module_centre = round(pos/spacing)*spacing  (integer grid)
+    // intra-module offset = pos - module_centre   (the E/I/O triangle)
+    // We scale only the module-centre part.
+    function updateCentroids() {
+      const sp=S.spacing;
+      cx0=0; cy0=0;
+      for(const n of S.nodes){
+        const ix=Math.round(n.pos[0]/sp[0]), ox=n.pos[0]-ix*sp[0];
+        const iy=Math.round(n.pos[1]/sp[1]), oy=n.pos[1]-iy*sp[1];
+        cx0+=ix*sp[0]*modScale+ox;
+        cy0+=iy*sp[1]*modScale+oy;
+      }
+      cx0/=S.nodes.length; cy0/=S.nodes.length;
+    }
+    updateCentroids();
+    updateCentroidsFn = updateCentroids;
+
+    const HOME = { rotX:-0.75, rotY:0.7, zoom:1.0, panX:0, panY:0 };
     let rotX=HOME.rotX, rotY=HOME.rotY, zoom=HOME.zoom, panX=HOME.panX, panY=HOME.panY;
 
     function proj(p) {
-      const x=p[0]-cx0, y=p[1]-cy0, z=p[2]-cz0;
+      const sp=S.spacing;
+      const ix=Math.round(p[0]/sp[0]), ox=p[0]-ix*sp[0];
+      const iy=Math.round(p[1]/sp[1]), oy=p[1]-iy*sp[1];
+      const x=ix*sp[0]*modScale+ox-cx0;
+      const y=iy*sp[1]*modScale+oy-cy0;
+      const z=(p[2]-cz0)*zScale;
       const sY=Math.sin(rotY), cY=Math.cos(rotY);
       const x1=cY*x+sY*z, z1=-sY*x+cY*z;
       const sX=Math.sin(rotX), cX=Math.cos(rotX);
@@ -260,8 +481,10 @@
     }
 
     function resizeNet() {
-      const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight;
-      if (cv.width!==w*dpr||cv.height!==h*dpr) {
+      const dpr=window.devicePixelRatio||1;
+      const rect=cv.parentElement.getBoundingClientRect();
+      const w=Math.round(rect.width), h=Math.round(rect.height);
+      if(cv.width!==w*dpr||cv.height!==h*dpr){
         cv.width=w*dpr; cv.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
       }
     }
@@ -269,10 +492,15 @@
     let lastProj = [];
     function drawNet() {
       resizeNet();
-      const w=cv.clientWidth, h=cv.clientHeight;
+      const rect=cv.parentElement.getBoundingClientRect();
+      const w=Math.round(rect.width), h=Math.round(rect.height);
       ctx.fillStyle='#090909'; ctx.fillRect(0,0,w,h);
       const vcx=w/2+panX, vcy=h/2+panY;
-      const np=S.nodes.map(n=>{const p=proj(n.pos);return{node:n,x:p[0],y:p[1],z:p[2]};});
+      // Only show nodes belonging to layers present in the current genome
+      const visNodes = liveZ!==null
+        ? S.nodes.filter(n => n.z < liveZ || n.z === -1)
+        : S.nodes;
+      const np=visNodes.map(n=>{const p=proj(n.pos);return{node:n,x:p[0],y:p[1],z:p[2]};});
       let maxR=1;
       for (const a of np){const r=Math.max(Math.abs(a.x),Math.abs(a.y));if(r>maxR)maxR=r;}
       const scale=Math.min(w,h)*0.42/maxR*zoom;
@@ -281,11 +509,11 @@
       for (const a of np){if(a.z<zmin)zmin=a.z;if(a.z>zmax)zmax=a.z;}
       const zspan=Math.max(1e-6,zmax-zmin);
       const fade=z=>0.2+0.8*(z-zmin)/zspan;
-      // edges
-      const ep=S.edges.map(e=>{const a=proj(e.from),b=proj(e.to);return{e,ax:a[0],ay:a[1],bx:b[0],by:b[1],mz:(a[2]+b[2])*.5};}).sort((a,b)=>a.mz-b.mz);
+      // edges — use currentEdges (rebuilt from live genome when available)
+      const ep=currentEdges.map(e=>{const a=proj(e.from),b=proj(e.to);return{e,ax:a[0],ay:a[1],bx:b[0],by:b[1],mz:(a[2]+b[2])*.5};}).sort((a,b)=>a.mz-b.mz);
       for (const{e,ax,ay,bx,by,mz}of ep) {
         const[u0,v0]=toPx(ax,ay),[u1,v1]=toPx(bx,by);
-        ctx.globalAlpha=fade(mz)*.65; ctx.strokeStyle=e.color; ctx.lineWidth=0.85;
+        ctx.globalAlpha=fade(mz)*.65; ctx.strokeStyle=e.color; ctx.lineWidth=edgeWidth;
         ctx.beginPath(); ctx.moveTo(u0,v0); ctx.lineTo(u1,v1); ctx.stroke();
         const dx=u1-u0,dy=v1-v0,len=Math.hypot(dx,dy)||1,tx=dx/len,ty=dy/len,nx=-ty,ny=tx;
         const ah=5,aw=2.5,bx2=u1-tx*ah,by2=v1-ty*ah;
@@ -296,13 +524,14 @@
       // nodes
       np.sort((a,b)=>a.z-b.z);
       for (const a of np){
-        const[u,v]=toPx(a.x,a.y), r=(a.node.radius||2)*Math.sqrt(zoom);
+        const[u,v]=toPx(a.x,a.y), r=(a.node.radius||2)*Math.sqrt(zoom)*nodeScale;
         ctx.globalAlpha=a.node.kind==='module'?0.3:fade(a.z);
         ctx.fillStyle=a.node.color; ctx.beginPath(); ctx.arc(u,v,r,0,Math.PI*2); ctx.fill();
         ctx.globalAlpha=1;
       }
       lastProj=np.map(a=>{const[u,v]=toPx(a.x,a.y);return{u,v,r:(a.node.radius||2)*Math.sqrt(zoom),node:a.node};});
     }
+    drawNetFn = drawNet;
 
     function pick(u,v){let best=null,bestD=1e9;for(const p of lastProj){const d=Math.hypot(p.u-u,p.v-v);if(d<p.r+4&&d<bestD){best=p;bestD=d;}}return best;}
 
@@ -321,14 +550,13 @@
     cv.addEventListener('contextmenu',e=>e.preventDefault());
     cv.addEventListener('wheel',e=>{e.preventDefault();zoom*=Math.exp(-e.deltaY*.001);zoom=Math.max(.2,Math.min(6,zoom));drawNet();},{passive:false});
     cv.addEventListener('dblclick',()=>{rotX=HOME.rotX;rotY=HOME.rotY;zoom=HOME.zoom;panX=HOME.panX;panY=HOME.panY;drawNet();});
-    window.addEventListener('resize',drawNet);
     drawNet();
   }
 
   // ── Generic chart helper ────────────────────────────────────────────────
   const injections = hist.map(h => h.injected || false);
 
-  function drawChart(canvas, series, { ymin, ymax, yFmt }) {
+  function drawChart(canvas, series, { ymin, ymax, yFmt, cursor }) {
     const n = hist.length;
     const dpr=window.devicePixelRatio||1, cw=canvas.clientWidth, ch=canvas.clientHeight;
     if(!cw||!ch)return;
@@ -365,6 +593,13 @@
       for(let i=0;i<n;i++){const v=values[i];if(v==null)continue;const x=toX(i),y=toY(v);if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);}
       ctx.stroke();ctx.globalAlpha=1;
     }
+    // Cursor line at viewGen
+    if(cursor!=null&&cursor>=0&&cursor<n){
+      const cx=toX(cursor);
+      ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=1.2;
+      ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(cx,mt);ctx.lineTo(cx,mt+ph);ctx.stroke();
+      ctx.setLineDash([]);
+    }
   }
 
   // ── Accuracy chart ──────────────────────────────────────────────────────
@@ -379,29 +614,92 @@
       {values:mean,color:'#4b5563',alpha:.8,width:1},
       {values:val, color:'#7c9fd4',alpha:.9,width:1.4},
       {values:best,color:'#fcffa4',alpha:1, width:1.8},
-    ],{ymin,ymax});
+    ],{ymin,ymax,cursor:viewGen});
   }
 
-  // ── Activity chart ──────────────────────────────────────────────────────
+  // ── Activity chart (dual Y-axis) ────────────────────────────────────────
   const actCv = document.getElementById('activity-canvas');
   function drawActivity() {
     if(!hist.length)return;
     const silent=hist.map(h=>h.best_silent_frac??null);
     const sat   =hist.map(h=>h.best_sat_frac??null);
     const fit   =hist.map(h=>h.best_fitness??null);
+    const n=hist.length;
+
+    const dpr=window.devicePixelRatio||1, cw=actCv.clientWidth, ch=actCv.clientHeight;
+    if(!cw||!ch)return;
+    if(actCv.width!==cw*dpr||actCv.height!==ch*dpr){actCv.width=cw*dpr;actCv.height=ch*dpr;}
+    const ctx=actCv.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#090909';ctx.fillRect(0,0,cw,ch);
+
+    if(!n){ctx.fillStyle='#475569';ctx.font='11px monospace';ctx.textAlign='center';ctx.fillText('no history',cw/2,ch/2);return;}
+
+    const ml=40,mr=44,mt=8,mb=20,pw=cw-ml-mr,ph=ch-mt-mb;
+    const toX=i=>ml+(i/Math.max(n-1,1))*pw;
+
+    // Left axis: activity fracs [0, lymax]
     const allFracs=[...silent,...sat].filter(v=>v!=null);
-    const ymax=allFracs.length?Math.min(1,Math.max(...allFracs)+.05):1;
+    const lymax=allFracs.length?Math.min(1,Math.max(...allFracs)+.05):0.5;
+    const toYL=v=>mt+ph*(1-v/Math.max(lymax,1e-9));
 
-    // Normalise fitness to [0,1] for overlay
+    // Right axis: raw fitness [rymin, rymax]
     const allFit=fit.filter(v=>v!=null);
-    const fmin=Math.min(...allFit), fmax=Math.max(...allFit);
-    const fitNorm=fit.map(v=>v==null?null:(v-fmin)/Math.max(fmax-fmin,1e-9)*ymax);
+    let rymin=0,rymax=1;
+    if(allFit.length){rymin=Math.min(...allFit)-.02;rymax=Math.max(...allFit)+.01;}
+    const toYR=v=>mt+ph*(1-(v-rymin)/Math.max(rymax-rymin,1e-9));
 
-    drawChart(actCv,[
-      {values:fitNorm, color:'#facc15',alpha:.6,width:1.2},
-      {values:silent,  color:'#ef4444',alpha:.9,width:1.6},
-      {values:sat,     color:'#f97316',alpha:.9,width:1.6},
-    ],{ymin:0,ymax});
+    // Grid (based on left axis)
+    ctx.font='9px monospace';
+    for(let i=0;i<=4;i++){
+      const v=lymax*i/4,y=toYL(v);
+      ctx.strokeStyle='#1e2030';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ml,y);ctx.lineTo(ml+pw,y);ctx.stroke();
+      ctx.fillStyle='#475569';ctx.textAlign='right';ctx.fillText(`${(v*100).toFixed(0)}%`,ml-3,y+3);
+    }
+
+    // Right axis line + tick labels
+    ctx.strokeStyle='#facc1530';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(ml+pw,mt);ctx.lineTo(ml+pw,mt+ph);ctx.stroke();
+    for(let i=0;i<=4;i++){
+      const v=rymin+(rymax-rymin)*i/4,y=toYR(v);
+      ctx.fillStyle='#facc1599';ctx.textAlign='left';
+      ctx.fillText(v.toFixed(2),ml+pw+4,y+3);
+      ctx.strokeStyle='#facc1530';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(ml+pw-3,y);ctx.lineTo(ml+pw,y);ctx.stroke();
+    }
+
+    // X labels
+    ctx.textAlign='center';ctx.fillStyle='#475569';
+    for(let i=0;i<=5;i++){const gi=Math.round((n-1)*i/5);ctx.fillText(gi,toX(gi),mt+ph+14);}
+
+    // Injection markers
+    ctx.strokeStyle='#3a2010';ctx.lineWidth=1;ctx.setLineDash([2,4]);
+    for(let i=0;i<n;i++)if(injections[i]){ctx.beginPath();ctx.moveTo(toX(i),mt);ctx.lineTo(toX(i),mt+ph);ctx.stroke();}
+    ctx.setLineDash([]);
+
+    // Fitness line (right axis) — drawn first so fracs overlay it
+    ctx.globalAlpha=.6;ctx.strokeStyle='#facc15';ctx.lineWidth=1.2;ctx.beginPath();
+    let first=true;
+    for(let i=0;i<n;i++){const v=fit[i];if(v==null)continue;const x=toX(i),y=toYR(v);if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);}
+    ctx.stroke();ctx.globalAlpha=1;
+
+    // Silent frac (left axis)
+    ctx.globalAlpha=.9;ctx.strokeStyle='#ef4444';ctx.lineWidth=1.6;ctx.beginPath();
+    first=true;
+    for(let i=0;i<n;i++){const v=silent[i];if(v==null)continue;const x=toX(i),y=toYL(v);if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);}
+    ctx.stroke();ctx.globalAlpha=1;
+
+    // Sat frac (left axis)
+    ctx.globalAlpha=.9;ctx.strokeStyle='#f97316';ctx.lineWidth=1.6;ctx.beginPath();
+    first=true;
+    for(let i=0;i<n;i++){const v=sat[i];if(v==null)continue;const x=toX(i),y=toYL(v);if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);}
+    ctx.stroke();ctx.globalAlpha=1;
+
+    // Cursor
+    if(viewGen>=0&&viewGen<n){
+      ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=1.2;
+      ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(toX(viewGen),mt);ctx.lineTo(toX(viewGen),mt+ph);ctx.stroke();ctx.setLineDash([]);
+    }
   }
 
   // ── Genome trajectory ───────────────────────────────────────────────────
@@ -417,7 +715,14 @@
 
     const n=hist.length;
     const hasG=n>0&&hist[0].best_genome!=null;
-    const k=S?S.k:2, Z=S?S.Z:4;
+    // Infer k from genome gene length (k + 2^k is unique per k) so the viewer
+    // stays correct when live genome data has a different k than evo_data.js.
+    let k=S?S.k:2;
+    if(hasG){
+      const geneLen=hist[0].best_genome[0][0].length;
+      for(let kk=1;kk<=8;kk++){if(kk+(1<<kk)===geneLen){k=kk;break;}}
+    }
+    const Z=hasG?hist[0].best_genome.length:(S?S.Z:4);
     const lutSize=1<<k;
     const NODE=['E','I','O'];
 
@@ -428,9 +733,10 @@
 
     // Layout
     const lblW=40, genAxisH=16, mt=4, hammH=hasG?26:0;
-    const nSelRows=Z*3*k;       // 24
-    const nLutRows=Z*3;         // 12  (one row per z×node, coloured by function id)
-    const nGap=Z*2;             // thin layer-gap rows (2 per layer: one in sel, one in lut section)
+    const hammY=mt;
+    const nSelRows=Z*3*k;
+    const nLutRows=Z*3;
+    const nGap=Z*2;
     const totalRows=nSelRows+nLutRows+nGap;
     const contentH=ch-mt-hammH-genAxisH-8;
     const rowH=contentH/totalRows;
@@ -459,21 +765,21 @@
         ham.push(d);
       }
       const maxH=Math.max(...ham,1);
-      ctx.fillStyle='#130d08'; ctx.fillRect(lblW,mt,plotW,hammH-2);
+      ctx.fillStyle='#130d08'; ctx.fillRect(lblW,hammY,plotW,hammH-2);
       ctx.strokeStyle='#f97316';ctx.lineWidth=1.2;ctx.beginPath();
       for(let i=0;i<n;i++){
-        const x=lblW+(i+.5)*colW, y=mt+hammH-3-(ham[i]/maxH)*(hammH-7);
+        const x=lblW+(i+.5)*colW, y=hammY+hammH-3-(ham[i]/maxH)*(hammH-7);
         if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
       }
       ctx.stroke();
       // zero-line
-      ctx.strokeStyle='#2a2a33';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(lblW,mt+hammH-3);ctx.lineTo(lblW+plotW,mt+hammH-3);ctx.stroke();
+      ctx.strokeStyle='#2a2a33';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(lblW,hammY+hammH-3);ctx.lineTo(lblW+plotW,hammY+hammH-3);ctx.stroke();
       ctx.fillStyle='#f97316';ctx.font='8px monospace';ctx.textAlign='left';
-      ctx.fillText(`Δ genome/gen  max=${maxH}`,lblW+3,mt+9);
+      ctx.fillText(`Δ genome/gen  max=${maxH}`,lblW+3,hammY+9);
     }
 
     // ── Draw rows ─────────────────────────────────────────────────────
-    let rowY=mt+hammH;
+    let rowY=hammY+hammH;
 
     function fillRow(y,color,alpha){
       ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fillRect(lblW,y,plotW,rowH+.5);ctx.globalAlpha=1;
@@ -548,13 +854,24 @@
         const gi=Math.round((n-1)*i/5);
         ctx.fillText(gi,lblW+(gi+.5)*colW,ch-2);
       }
+      // ── viewGen cursor ───────────────────────────────────────────────
+      if(viewGen>=0&&viewGen<n){
+        const cx=lblW+(viewGen+.5)*colW;
+        const topY=hammY+hammH;
+        ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=Math.max(1,colW*.5);
+        ctx.globalAlpha=0.25;
+        ctx.fillStyle='#ffffff';ctx.fillRect(cx-colW*.5,topY,colW,ch-topY-16);
+        ctx.globalAlpha=1;
+        ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.beginPath();
+        ctx.moveTo(cx,topY);ctx.lineTo(cx,ch-16);ctx.stroke();ctx.setLineDash([]);
+      }
     }
 
     // ── Pool source legend ────────────────────────────────────────────
     // (rendered in the #genome-legend div via HTML, not canvas)
   }
 
-  // Populate genome legend
+  // Populate genome legend (pool sources only)
   (()=>{
     const leg=document.getElementById('genome-legend');
     const groups=[
@@ -574,9 +891,185 @@
     ).join('');
   })();
 
+  // ── WTA assignment panel ─────────────────────────────────────────────────
+  const wtaCv = document.getElementById('wta-canvas');
+
+  // Populate WTA legend (class colour swatches)
+  (()=>{
+    const hasAssign=hist.length>0&&hist[0].best_assignment!=null;
+    if(!hasAssign) return;
+    const nC=hist.reduce((m,h)=>Math.max(m,...(h.best_assignment||[0])),0)+1;
+    const leg=document.getElementById('wta-legend');
+    leg.innerHTML=Array.from({length:Math.min(nC,CLASS_COLORS.length)},(_,c)=>
+      `<span style="display:flex;align-items:center;gap:3px">
+        <span style="width:10px;height:10px;border-radius:2px;background:${CLASS_COLORS[c]};flex:0 0 auto"></span>${c}
+      </span>`
+    ).join('');
+  })();
+
+  function drawWTA() {
+    if(!wtaCv) return;
+    const dpr=window.devicePixelRatio||1, cw=wtaCv.clientWidth, ch=wtaCv.clientHeight;
+    if(!cw||!ch) return;
+    if(wtaCv.width!==cw*dpr||wtaCv.height!==ch*dpr){wtaCv.width=cw*dpr;wtaCv.height=ch*dpr;}
+    const ctx=wtaCv.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#090909';ctx.fillRect(0,0,cw,ch);
+
+    const n=hist.length;
+    if(!n||!hist[0].best_assignment){
+      ctx.fillStyle='#475569';ctx.font='11px monospace';
+      ctx.textAlign='center';ctx.fillText('no data',cw/2,ch/2);
+      return;
+    }
+
+    const colW=cw/n;
+    for(let i=0;i<n;i++){
+      const asgn=hist[i].best_assignment; if(!asgn)continue;
+      const x=i*colW, bw=Math.max(1,colW+.3), nc=asgn.length;
+      for(let c=0;c<nc;c++){
+        ctx.fillStyle=CLASS_COLORS[asgn[c]%CLASS_COLORS.length];
+        ctx.fillRect(x,(c/nc)*ch,bw,ch/nc+.5);
+      }
+    }
+
+    // Cursor at viewGen
+    if(viewGen>=0&&viewGen<n){
+      const asgn=hist[viewGen].best_assignment;
+      const cx=viewGen*colW, bw=Math.max(1,colW);
+      ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=1;
+      ctx.strokeRect(cx+.5,.5,bw-1,ch-1);
+      if(colW>=10&&asgn){
+        const nc=asgn.length;
+        ctx.font='6px monospace';ctx.textAlign='center';
+        for(let c=0;c<nc;c++){
+          const cls=asgn[c], sy=(c+.5)/nc*ch;
+          ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(cx,sy-4,bw,7);
+          ctx.fillStyle='#fff';ctx.fillText(cls,cx+bw/2,sy+2.5);
+        }
+      }
+    }
+  }
+
   // ── Wire up ─────────────────────────────────────────────────────────────
-  function drawAll(){ drawFitness(); drawActivity(); drawGenome(); }
-  window.addEventListener('resize', drawAll);
+  function drawAll(){ drawFitness(); drawActivity(); drawGenome(); drawWTA(); }
+  window.addEventListener('resize', ()=>{ if(drawNetFn) drawNetFn(); drawAll(); });
+
+  // ── Controls references ──────────────────────────────────────────────────
+  const genSlider   = document.getElementById('gen-slider');
+  const genReadout  = document.getElementById('gen-readout');
+  const btnPlay     = document.getElementById('btn-play');
+  const btnReset    = document.getElementById('btn-reset');
+  const btnEnd      = document.getElementById('btn-end');
+  const edgeSlider     = document.getElementById('edge-slider');
+  const nodeSlider     = document.getElementById('node-slider');
+  const zdistSlider    = document.getElementById('zdist-slider');
+
+  function updateGenReadout() {
+    const max = Math.max(0, hist.length - 1);
+    genReadout.textContent = hist.length ? `${viewGen} / ${max}` : '—';
+  }
+
+  function updateNetForGen(g) {
+    if (!hist.length) return;
+    const rec = hist[Math.min(g, hist.length - 1)];
+    if (rec && rec.best_genome && S) {
+      liveZ = rec.best_genome.length;
+      currentEdges = buildEdgesFromGenome(rec.best_genome);
+    }
+    if (drawNetFn) drawNetFn();
+  }
+
+  // ── Playback logic ───────────────────────────────────────────────────────
+  const PLAY_MS = 150;
+
+  function stopPlay() {
+    isPlaying = false;
+    if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+    btnPlay.textContent = '▶';
+    btnPlay.classList.remove('active');
+  }
+
+  function advancePlay() {
+    if (!isPlaying) return;
+    if (viewGen < hist.length - 1) {
+      viewGen++;
+      genSlider.value = viewGen;
+      updateGenReadout();
+      updateNetForGen(viewGen);
+      drawAll();
+      playTimer = setTimeout(advancePlay, PLAY_MS);
+    } else {
+      stopPlay();
+    }
+  }
+
+  btnPlay.addEventListener('click', () => {
+    if (isPlaying) {
+      stopPlay();
+    } else {
+      if (!hist.length) return;
+      if (viewGen >= hist.length - 1) viewGen = 0; // wrap to start
+      isPlaying = true;
+      btnPlay.textContent = '⏸';
+      btnPlay.classList.add('active');
+      advancePlay();
+    }
+  });
+
+  btnReset.addEventListener('click', () => {
+    stopPlay();
+    viewGen = 0;
+    genSlider.value = 0;
+    updateGenReadout();
+    updateNetForGen(0);
+    drawAll();
+  });
+
+  btnEnd.addEventListener('click', () => {
+    stopPlay();
+    viewGen = Math.max(0, hist.length - 1);
+    genSlider.value = viewGen;
+    updateGenReadout();
+    updateNetForGen(viewGen);
+    drawAll();
+  });
+
+  genSlider.addEventListener('input', () => {
+    stopPlay();
+    viewGen = parseInt(genSlider.value);
+    updateGenReadout();
+    updateNetForGen(viewGen);
+    drawAll();
+  });
+
+  edgeSlider.addEventListener('input', () => {
+    edgeWidth = parseFloat(edgeSlider.value);
+    if (drawNetFn) drawNetFn();
+  });
+
+  nodeSlider.addEventListener('input', () => {
+    nodeScale = parseFloat(nodeSlider.value);
+    if (drawNetFn) drawNetFn();
+  });
+
+  zdistSlider.addEventListener('input', () => {
+    zScale = parseFloat(zdistSlider.value);
+    if (drawNetFn) drawNetFn();
+  });
+
+  const modspreadSlider = document.getElementById('modspread-slider');
+  modspreadSlider.addEventListener('input', () => {
+    modScale = parseFloat(modspreadSlider.value);
+    if (updateCentroidsFn) updateCentroidsFn();
+    if (drawNetFn) drawNetFn();
+  });
+
+  // Initialise slider from current hist
+  genSlider.max   = Math.max(0, hist.length - 1);
+  genSlider.value = viewGen;
+  updateGenReadout();
+  updateNetForGen(viewGen);
   drawAll();
 
   // Live polling
@@ -589,8 +1082,19 @@
     if (data.history.length === liveGenCount) return;
     liveGenCount = data.history.length;
 
+    const wasAtEnd = viewGen >= hist.length - 1;
     hist.length = 0;
     for (const r of data.history) hist.push(r);
+
+    genSlider.max = Math.max(0, hist.length - 1);
+
+    // If was tracking the latest gen, advance to the new latest
+    if (wasAtEnd || viewGen > hist.length - 1) {
+      viewGen = hist.length - 1;
+      genSlider.value = viewGen;
+    }
+    updateGenReadout();
+    updateNetForGen(viewGen);
 
     const items = [];
     if (data.experiment) items.push(['exp',  data.experiment]);
