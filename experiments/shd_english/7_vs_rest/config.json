@@ -1,0 +1,31 @@
+{
+  "task":                "7_vs_rest",
+  "n_classes":           2,
+
+  "pop_size":            200,
+  "n_generations":       100,
+  "lut_mutation_rate":   0.02,
+  "sel_mutation_rate":   0.01,
+  "elite_size":          20,
+  "penalty_weights":     [0.1, 0.1],
+  "use_crossover":       false,
+  "stagnation_patience": 10,
+  "stagnation_inject_frac": 0.3,
+  "parallel_samples":    false,
+
+  "n_pool_per_class":    200,
+  "val_fraction":        0.2,
+  "n_time_bins":         10,
+  "readout_decay":      0.9,
+  "seed":                42,
+
+  "z":                   4,
+  "grid_height":         1,
+  "grid_width":          700,
+  "k":                   2,
+  "use_identity":        true,
+  "use_positional_cues": true,
+  "use_distal":          true,
+  "distal_seed":         0,
+  "identity_seed":       0
+}
