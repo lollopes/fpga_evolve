@@ -85,14 +85,20 @@ class Lattice3DNetwork(nn.Module):
         Z: int,
         H: int,
         W: int,
-        layer_genomes: list,             # Z × [B, 3, k + 2**k] packed tensors
-        distal_idx: torch.Tensor = None, # [Z, H, W, 2, 3] long, or None
-        k: int = 2,                      # node arity (MUX inputs per node)
-        identity_seed: int = 0,          # RNG seed for deterministic identity bits
-        use_identity: bool = True,       # if False, P[10:12] forced to zero
+        layer_genomes: list,               # Z × [B, 3, k + 2**k] packed tensors
+        distal_idx: torch.Tensor = None,   # [Z, H, W, 2, 3] long, or None
+        k: int = 2,                        # node arity (MUX inputs per node)
+        identity_seed: int = 0,            # RNG seed for deterministic identity bits
+        use_identity: bool = True,         # if False, P[10:12] forced to zero
         use_positional_cues: bool = False, # if True, P[12:13] carry x/y cues
-        distal_seed: int = 0,            # RNG seed for deterministic distal sources
-        use_distal: bool = True,         # if False, P[8:10] forced to zero
+        distal_seed: int = 0,              # RNG seed for deterministic distal sources
+        use_distal: bool = True,           # if False, P[8:10] forced to zero
+        # ── Random per-node pool wiring (replaces canonical pool when enabled) ──
+        use_random_pool: bool = False,     # if True, each node gets a randomly wired pool
+        lambda_lateral: float = 1.0,       # distance-decay for lateral (x,y) offsets
+        lambda_depth: float = 0.5,         # distance-decay for laminar (z) offsets
+        pool_wiring_seed: int = 0,         # RNG seed for pool wiring
+        pool_idx: torch.Tensor = None,     # pre-computed [Z,H,W,N_NODES,POOL_SIZE,3], or None
     ) -> None:
         """
         Parameters
@@ -108,6 +114,17 @@ class Lattice3DNetwork(nn.Module):
         use_positional_cues : if True, P[12:13] carry x/y half-plane cues (default False)
         distal_seed         : integer seed for deterministic distal sources (default 0)
         use_distal          : if False, P[8:10] are forced to zero (default True)
+        use_random_pool     : if True, each node at each site gets a unique randomly wired
+                              pool of POOL_SIZE sources sampled from a distance-weighted
+                              direction set; replaces the canonical P[0..15] pool entirely.
+                              Slot 0 = self-recurrence, slot 1 = feedforward input; the
+                              remaining POOL_SIZE-2 slots are sampled without replacement.
+        lambda_lateral      : exponential decay rate for lateral (|dx|+|dy|) distance;
+                              larger values favour immediate neighbours (default 1.0)
+        lambda_depth        : exponential decay rate for laminar |dz| distance (default 0.5)
+        pool_wiring_seed    : integer seed for pool wiring RNG (default 0)
+        pool_idx            : pre-computed pool wiring [Z,H,W,N_NODES,POOL_SIZE,3]; if
+                              provided, skips regeneration (useful in expand())
         """
         super().__init__()
 
@@ -123,6 +140,10 @@ class Lattice3DNetwork(nn.Module):
         self.use_positional_cues = use_positional_cues
         self.distal_seed = distal_seed
         self.use_distal = use_distal
+        self.use_random_pool = use_random_pool
+        self.lambda_lateral = lambda_lateral
+        self.lambda_depth = lambda_depth
+        self.pool_wiring_seed = pool_wiring_seed
         self.LUT_SIZE = 2 ** k
         self.NODE_GENOME_SIZE = k + self.LUT_SIZE
 
@@ -183,6 +204,29 @@ class Lattice3DNetwork(nn.Module):
             f"state shape {tuple(self.state.shape)} != "
             f"({B}, {Z}, {H}, {W}, {self.K})"
         )
+
+        # Random per-node pool wiring (only when use_random_pool=True)
+        if use_random_pool:
+            dev = layer_genomes[0].device
+            if pool_idx is None:
+                pool_idx = self._generate_pool_wiring(
+                    Z, H, W, self.N_NODES, self.POOL_SIZE,
+                    lambda_lateral, lambda_depth, pool_wiring_seed, dev,
+                )
+            # pool_idx: [Z, H, W, N_NODES, POOL_SIZE, 3]  int32
+            self.register_buffer("pool_idx", pool_idx.to(torch.int32).to(dev))
+            # Precompute flat linear indices into the (Z+1)*H*W extended act tensor
+            # so that step() only needs one gather, not index arithmetic per call.
+            pz = pool_idx[..., 0].long()   # [Z, H, W, N_NODES, POOL_SIZE]
+            py = pool_idx[..., 1].long()
+            px = pool_idx[..., 2].long()
+            pool_lin = (pz * H * W + py * W + px).to(torch.int32)
+            # Reshape to [Z*H*W, N_NODES, POOL_SIZE] — matches the (B)*Z*H*W flattening
+            # order used in step() so that reshape(N, N_NODES, POOL_SIZE) aligns with sel.
+            self.register_buffer(
+                "pool_lin",
+                pool_lin.reshape(Z * H * W, self.N_NODES, self.POOL_SIZE).to(dev),
+            )
 
     # ------------------------------------------------------------------
     # Pool helpers
@@ -313,6 +357,10 @@ class Lattice3DNetwork(nn.Module):
         E and I nodes fire in parallel; O node fires after E (E→O coupling);
         I gating produces K=1 output bit; self.state is updated in-place.
 
+        When use_random_pool=True each node uses its own randomly wired pool
+        (built by a single gather from the precomputed pool_lin indices).
+        When use_random_pool=False the original canonical pool is used.
+
         input_t : [B, H, W] long — binary sensory frame for z=0.
         Returns : new state [B, Z, H, W, 1]
         """
@@ -320,56 +368,13 @@ class Lattice3DNetwork(nn.Module):
         state = self.state  # [B, Z, H, W, 1]
         B, Z, H, W, _ = state.shape
         dev = state.device
+        N = B * Z * H * W
 
-        # ---- 1. Compressed activity map: single output bit per site ----
-        # With K=1 the state is already a single bit, so squeeze is OR-equivalent
+        # ---- 1. Compressed activity map --------------------------------
         act = state[..., 0]  # [B, Z, H, W]
 
-        # ---- 2. Lateral neighbours via zero-padding -------------------
-        padded_hw = F.pad(act.float(), (1, 1, 1, 1))       # [B, Z, H+2, W+2]
-        padded_z  = F.pad(act.float(), (0, 0, 0, 0, 1, 1)) # [B, Z+2, H,   W  ]
-
-        left  = padded_hw[:, :, 1:-1, :-2].bool()    # [B, Z, H, W] — x-1
-        right = padded_hw[:, :, 1:-1, 2: ].bool()    # [B, Z, H, W] — x+1
-        up    = padded_hw[:, :, :-2, 1:-1].bool()    # [B, Z, H, W] — y-1
-        down  = padded_hw[:, :, 2:,  1:-1].bool()    # [B, Z, H, W] — y+1
-        above = padded_z[:, :-2].bool()              # [B, Z, H, W] — z-1
-        below = padded_z[:, 2: ].bool()              # [B, Z, H, W] — z+1
-
-        # ---- 3. Feedforward: z=0 gets input_t, z>0 gets zero ----------
-        ff = torch.zeros(B, Z, H, W, dtype=torch.bool, device=dev)
-        ff[:, 0] = input_t  # broadcast over H×W
-
-        # ---- 4. Distal signals for all modules -------------------------
-        if self.use_distal:
-            dist = self._gather_distal(act)  # [B, Z, H, W, 2]
-        else:
-            dist = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
-
-        # ---- 5. Assemble pool [B, Z, H, W, 16] -------------------------
-        # identity_bits [Z,H,W,2] and pos_cue [H,W,2] broadcast to [B,Z,H,W,2]
-        if self.use_identity:
-            identity = self.identity_bits.unsqueeze(0).expand(B, -1, -1, -1, -1)
-        else:
-            identity = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
-        if self.use_positional_cues:
-            pos = self.pos_cue.unsqueeze(0).unsqueeze(0).expand(B, Z, -1, -1, -1)
-        else:
-            pos = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
-        zeros2 = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
-        pool = torch.cat([
-            torch.stack([left, right, up, down, above, below,  # P[0-5]
-                         state[..., 0],                        # P[6] self bit
-                         ff,                                   # P[7]
-                         dist[..., 0], dist[..., 1]], dim=-1), # P[8-9]  [B,Z,H,W,10]
-            identity,                                          # P[10-11]
-            pos,                                               # P[12-13]
-            zeros2,                                            # P[14-15]
-        ], dim=-1)  # [B, Z, H, W, 16]
-
-        # ---- 6. Expand layer genomes over the H×W spatial positions ---
-        # layer_sel: [Z, B, 3, k] → [B, Z, H, W, 3, k] → [BZHW, 3, k]
-        N = B * Z * H * W
+        # ---- 2. Expand layer genomes over all H×W sites ----------------
+        # layer_sel: [Z, B, N_NODES, k] → sel: [N, N_NODES, k]
         sel = (
             self.layer_sel              # [Z, B, 3, k]
             .permute(1, 0, 2, 3)        # [B, Z, 3, k]
@@ -386,24 +391,95 @@ class Lattice3DNetwork(nn.Module):
             .contiguous()
             .reshape(N, self.N_NODES, self.LUT_SIZE)
         )
-        flat_pool = pool.reshape(N, self.POOL_SIZE)  # [BZHW, 16]
 
-        # ---- 7. E and I fire on original pool (separate calls, each [N,1]) -
-        out_E = node_forward(sel[:, 0:1], lut[:, 0:1], flat_pool)  # [N, 1]
-        out_I = node_forward(sel[:, 1:2], lut[:, 1:2], flat_pool)  # [N, 1]
+        if self.use_random_pool:
+            # ---- Random per-node pool path --------------------------------
+            # Append feedforward input as virtual layer Z so that pool_idx
+            # entries with z_src=Z resolve to the sensory input via one gather.
+            # act_ext: [B, Z+1, H, W]  (uint8 for gather compatibility)
+            act_ext = torch.cat(
+                [act, input_t.unsqueeze(1)], dim=1
+            ).to(torch.uint8)
+            act_flat = act_ext.reshape(B, (Z + 1) * H * W)  # [B, (Z+1)*HW]
 
-        # ---- 8. O node sees pool with P[0] = E's output (E→O coupling) --
-        O_pool = flat_pool.clone()
-        O_pool[:, 0] = out_E.squeeze(1)
-        O_raw = node_forward(sel[:, 2:3], lut[:, 2:3], O_pool)     # [N, 1]
+            # pool_lin: [Z*H*W, N_NODES, POOL_SIZE] — precomputed flat indices
+            lin   = self.pool_lin.long().reshape(-1)          # [ZHW*N_NODES*PS]
+            lin_b = lin.unsqueeze(0).expand(B, -1)            # [B, ZHW*N_NODES*PS]
+            pools = act_flat.gather(1, lin_b)                 # [B, ZHW*N_NODES*PS]
+            pools = (
+                pools
+                .reshape(B, Z, H, W, self.N_NODES, self.POOL_SIZE)
+                .reshape(N, self.N_NODES, self.POOL_SIZE)
+                .bool()
+            )  # [N, N_NODES, POOL_SIZE]
 
-        # ---- 9. I gating → K=1 output bit per module -----------------
+            # Fire E and I on their own per-node pools
+            out_E = node_forward(sel[:, 0:1], lut[:, 0:1], pools[:, 0])  # [N, 1]
+            out_I = node_forward(sel[:, 1:2], lut[:, 1:2], pools[:, 1])  # [N, 1]
+
+            # E→O coupling: override O's slot 0 with E's current output
+            O_pool = pools[:, 2].clone()
+            O_pool[:, 0] = out_E.squeeze(1)
+            O_raw = node_forward(sel[:, 2:3], lut[:, 2:3], O_pool)       # [N, 1]
+
+        else:
+            # ---- Original canonical pool path ----------------------------
+
+            # ---- 3. Lateral neighbours via zero-padding ------------------
+            padded_hw = F.pad(act.float(), (1, 1, 1, 1))        # [B, Z, H+2, W+2]
+            padded_z  = F.pad(act.float(), (0, 0, 0, 0, 1, 1))  # [B, Z+2, H,   W]
+
+            left  = padded_hw[:, :, 1:-1, :-2].bool()
+            right = padded_hw[:, :, 1:-1, 2: ].bool()
+            up    = padded_hw[:, :, :-2, 1:-1].bool()
+            down  = padded_hw[:, :, 2:,  1:-1].bool()
+            above = padded_z[:, :-2].bool()
+            below = padded_z[:, 2: ].bool()
+
+            # ---- 4. Feedforward: z=0 gets input_t, z>0 gets zero ---------
+            ff = torch.zeros(B, Z, H, W, dtype=torch.bool, device=dev)
+            ff[:, 0] = input_t
+
+            # ---- 5. Distal signals ----------------------------------------
+            if self.use_distal:
+                dist = self._gather_distal(act)   # [B, Z, H, W, 2]
+            else:
+                dist = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
+
+            # ---- 6. Assemble canonical pool [B, Z, H, W, 16] ---------------
+            if self.use_identity:
+                identity = self.identity_bits.unsqueeze(0).expand(B, -1, -1, -1, -1)
+            else:
+                identity = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
+            if self.use_positional_cues:
+                pos = self.pos_cue.unsqueeze(0).unsqueeze(0).expand(B, Z, -1, -1, -1)
+            else:
+                pos = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
+            zeros2 = torch.zeros(B, Z, H, W, 2, dtype=torch.bool, device=dev)
+            pool = torch.cat([
+                torch.stack([left, right, up, down, above, below,  # P[0-5]
+                             state[..., 0],                        # P[6] self bit
+                             ff,                                   # P[7]
+                             dist[..., 0], dist[..., 1]], dim=-1), # P[8-9]
+                identity,                                          # P[10-11]
+                pos,                                               # P[12-13]
+                zeros2,                                            # P[14-15]
+            ], dim=-1)  # [B, Z, H, W, 16]
+
+            flat_pool = pool.reshape(N, self.POOL_SIZE)
+
+            out_E = node_forward(sel[:, 0:1], lut[:, 0:1], flat_pool)  # [N, 1]
+            out_I = node_forward(sel[:, 1:2], lut[:, 1:2], flat_pool)  # [N, 1]
+            O_pool = flat_pool.clone()
+            O_pool[:, 0] = out_E.squeeze(1)
+            O_raw = node_forward(sel[:, 2:3], lut[:, 2:3], O_pool)     # [N, 1]
+
+        # ---- I gating → K=1 output bit per module ---------------------
         o = O_raw & (~out_I)  # [N, 1]
 
         new_state = o.reshape(B, Z, H, W, 1)
         self.state.copy_(new_state)
 
-        # Expose intermediate activations for external inspection (e.g. raster plots).
         self.last_E     = out_E.reshape(B, Z, H, W).detach()
         self.last_I     = out_I.reshape(B, Z, H, W).detach()
         self.last_O_raw = O_raw.reshape(B, Z, H, W).detach()
@@ -552,6 +628,11 @@ class Lattice3DNetwork(nn.Module):
             use_positional_cues=self.use_positional_cues,
             distal_seed=self.distal_seed,
             use_distal=self.use_distal,
+            use_random_pool=self.use_random_pool,
+            lambda_lateral=self.lambda_lateral,
+            lambda_depth=self.lambda_depth,
+            pool_wiring_seed=self.pool_wiring_seed,
+            pool_idx=self.pool_idx if self.use_random_pool else None,
         )
         net.identity_bits.copy_(self.identity_bits)  # preserve exact bits, not just seed
         return net
@@ -559,6 +640,129 @@ class Lattice3DNetwork(nn.Module):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _generate_pool_wiring(
+        Z: int,
+        H: int,
+        W: int,
+        N_NODES: int,
+        POOL_SIZE: int,
+        lambda_lateral: float,
+        lambda_depth: float,
+        seed: int,
+        device: torch.device,
+    ) -> torch.Tensor:
+        """Generate random per-node pool wiring for the full lattice.
+
+        For each site (z, y, x) and each node n ∈ {E, I, O}, assigns POOL_SIZE
+        source locations drawn from a distance-weighted direction set:
+
+          slot 0  — self  (z, y, x) — guaranteed self-recurrence
+          slot 1  — feedforward input sentinel (z = Z) — always on the sensory path
+          slots 2..POOL_SIZE-1 — sampled without replacement from 40 canonical offsets
+                                  spanning Groups B-E (local → diagonal inter-layer),
+                                  weighted by exp(-λ_lat*(|dy|+|dx|) − λ_dep*|dz|)
+
+        Toroidal boundary conditions are applied on all three axes so every direction
+        resolves to a valid lattice site regardless of position.
+
+        The feedforward sentinel (z = Z) is treated in step() by prepending input_t
+        as a virtual layer Z of the activity tensor before the gather.
+
+        Returns
+        -------
+        pool_idx : [Z, H, W, N_NODES, POOL_SIZE, 3]  int32 on CPU
+                   Last dim: (z_src, y_src, x_src).  z_src = Z → feedforward.
+        """
+        import math
+
+        # ── Direction set ────────────────────────────────────────────────────────
+        # Group B: radius-1 Moore neighbourhood, same layer (8 directions)
+        directions = []
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dy == 0 and dx == 0:
+                    continue
+                directions.append((0, dy, dx))
+
+        # Group C: radius-2 extended, same layer — cardinal-2 + knight-like (12)
+        for dy, dx in [
+            (0, 2), (0, -2), (2, 0), (-2, 0),
+            (1, 2), (-1, 2), (1, -2), (-1, -2),
+            (2, 1), (-2, 1), (2, -1), (-2, -1),
+        ]:
+            directions.append((0, dy, dx))
+
+        # Group D: direct inter-layer, no lateral offset (4)
+        for dz in (-1, 1, -2, 2):
+            directions.append((dz, 0, 0))
+
+        # Group E: diagonal inter-layer — z±1 combined with radius-1 lateral (16)
+        for dz in (-1, 1):
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    if dy == 0 and dx == 0:
+                        continue
+                    directions.append((dz, dy, dx))
+
+        # n_dirs = 8 + 12 + 4 + 16 = 40
+        n_dirs = len(directions)
+        n_sample = POOL_SIZE - 2          # slots filled by sampling
+
+        if n_dirs < n_sample:
+            raise ValueError(
+                f"Direction set ({n_dirs}) is smaller than n_sample ({n_sample}); "
+                "reduce POOL_SIZE or extend the direction set."
+            )
+
+        # ── Per-direction sampling weights ───────────────────────────────────────
+        weights = torch.tensor(
+            [
+                math.exp(
+                    -lambda_lateral * (abs(dy) + abs(dx)) - lambda_depth * abs(dz)
+                )
+                for dz, dy, dx in directions
+            ],
+            dtype=torch.float32,
+        )
+        weights = weights / weights.sum()
+
+        dir_tensor = torch.tensor(directions, dtype=torch.int32)  # [n_dirs, 3]
+
+        # ── Site coordinates [n_sites, 3] ────────────────────────────────────────
+        n_sites = Z * H * W * N_NODES
+        zs = torch.arange(Z).view(Z, 1, 1, 1).expand(Z, H, W, N_NODES).reshape(-1)
+        ys = torch.arange(H).view(1, H, 1, 1).expand(Z, H, W, N_NODES).reshape(-1)
+        xs = torch.arange(W).view(1, 1, W, 1).expand(Z, H, W, N_NODES).reshape(-1)
+
+        # ── Sample n_sample directions per site, without replacement ─────────────
+        rng = torch.Generator()           # CPU generator for reproducibility
+        rng.manual_seed(seed)
+        weights_batch = weights.unsqueeze(0).expand(n_sites, -1)  # [n_sites, n_dirs]
+        sampled_dir_idx = torch.multinomial(
+            weights_batch, n_sample, replacement=False, generator=rng
+        )  # [n_sites, n_sample]
+
+        # ── Resolve directions to absolute coords with toroidal wrapping ─────────
+        offsets = dir_tensor[sampled_dir_idx.reshape(-1)].reshape(n_sites, n_sample, 3)
+        z_src = (zs.unsqueeze(1) + offsets[:, :, 0]) % Z   # [n_sites, n_sample]
+        y_src = (ys.unsqueeze(1) + offsets[:, :, 1]) % H
+        x_src = (xs.unsqueeze(1) + offsets[:, :, 2]) % W
+        sampled_coords = torch.stack([z_src, y_src, x_src], dim=2)  # [n_sites, n_sample, 3]
+
+        # ── Mandatory slots ──────────────────────────────────────────────────────
+        site_coords = torch.stack([zs, ys, xs], dim=1)     # [n_sites, 3]
+        slot_self = site_coords.unsqueeze(1)                # [n_sites, 1, 3] — self-recurrence
+        slot_ff   = site_coords.unsqueeze(1).clone()
+        slot_ff[:, 0, 0] = Z                                # sentinel: z=Z → feedforward
+
+        # ── Assemble full pool_idx ───────────────────────────────────────────────
+        pool_idx = torch.cat([slot_self, slot_ff, sampled_coords], dim=1)
+        # pool_idx: [n_sites, POOL_SIZE, 3]
+        assert pool_idx.shape == (n_sites, POOL_SIZE, 3)
+
+        return pool_idx.reshape(Z, H, W, N_NODES, POOL_SIZE, 3).to(torch.int32)
 
     @staticmethod
     def _init_distal_sources(

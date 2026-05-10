@@ -14,15 +14,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.6470588445663452,
+    "best_assignment": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
+          7,
+          6,
+          0,
+          0,
           1,
-          0,
-          0,
           1
         ],
         [
@@ -140,15 +176,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.6176470518112183,
+    "best_assignment": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
+          7,
+          6,
+          0,
+          0,
           1,
-          0,
-          0,
           1
         ],
         [
@@ -266,15 +338,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.6176470518112183,
+    "best_assignment": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -392,15 +500,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.6764705777168274,
+    "best_assignment": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
+          7,
+          6,
+          0,
+          0,
           1,
-          0,
-          0,
           1
         ],
         [
@@ -518,15 +662,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.6764705777168274,
+    "best_assignment": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
+          7,
+          6,
+          0,
+          0,
           1,
-          0,
-          0,
           1
         ],
         [
@@ -644,15 +824,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.529411792755127,
+    "best_assignment": [
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -770,15 +986,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.529411792755127,
+    "best_assignment": [
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -896,15 +1148,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.529411792755127,
+    "best_assignment": [
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1022,15 +1310,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.529411792755127,
+    "best_assignment": [
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1148,15 +1472,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.529411792755127,
+    "best_assignment": [
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1274,15 +1634,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.529411792755127,
+    "best_assignment": [
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1400,15 +1796,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1526,15 +1958,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1652,15 +2120,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1766,9 +2270,9 @@
   {
     "gen": 14,
     "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8018749952316284,
+    "mean_acc": 0.8003749847412109,
     "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.796875,
+    "mean_fitness": 0.7943750023841858,
     "best_silent_frac": 0.0,
     "best_sat_frac": 0.0,
     "best_assignment_counts": [
@@ -1778,15 +2282,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -1892,9 +2432,9 @@
   {
     "gen": 15,
     "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7587749361991882,
+    "mean_acc": 0.758774995803833,
     "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7467749118804932,
+    "mean_fitness": 0.7477749586105347,
     "best_silent_frac": 0.0,
     "best_sat_frac": 0.0,
     "best_assignment_counts": [
@@ -1904,15 +2444,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2030,15 +2606,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2156,15 +2768,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2282,15 +2930,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2408,15 +3092,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2534,15 +3254,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2650,7 +3406,7 @@
     "best_acc": 0.9387499690055847,
     "mean_acc": 0.7709749341011047,
     "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7679749727249146,
+    "mean_fitness": 0.7689749002456665,
     "best_silent_frac": 0.0,
     "best_sat_frac": 0.0,
     "best_assignment_counts": [
@@ -2660,15 +3416,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2786,15 +3578,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -2912,15 +3740,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -3038,15 +3902,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": true,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -3164,15 +4064,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -3278,9 +4214,9 @@
   {
     "gen": 26,
     "best_acc": 0.9387499690055847,
-    "mean_acc": 0.778662383556366,
+    "mean_acc": 0.7786625027656555,
     "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7706625461578369,
+    "mean_fitness": 0.7716625332832336,
     "best_silent_frac": 0.0,
     "best_sat_frac": 0.0,
     "best_assignment_counts": [
@@ -3290,15 +4226,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -3416,15 +4388,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -3542,15 +4550,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
     "injected": false,
     "best_genome": [
       [
         [
-          4,
-          9,
-          1,
+          7,
+          6,
           0,
-          1,
+          0,
+          0,
           1
         ],
         [
@@ -3656,9 +4700,9 @@
   {
     "gen": 29,
     "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8017624616622925,
+    "mean_acc": 0.8016624450683594,
     "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7977624535560608,
+    "mean_fitness": 0.7986624836921692,
     "best_silent_frac": 0.0,
     "best_sat_frac": 0.0,
     "best_assignment_counts": [
@@ -3668,8835 +4712,51 @@
     "best_assignment_used": 2,
     "best_assignment_top_class": 0,
     "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 30,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7736874222755432,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7606874704360962,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 31,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8103125095367432,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.8083124160766602,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 32,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.817437469959259,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.8154375553131104,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 33,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7959875464439392,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.793987512588501,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 34,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8050000071525574,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.8039999008178711,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": true,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 35,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7777999639511108,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7747999429702759,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 36,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.737899899482727,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7328999042510986,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 37,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7689749598503113,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7589749693870544,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 38,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8025000095367432,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7984999418258667,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 39,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7776249647140503,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7696249485015869,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 40,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.803524911403656,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7985249757766724,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 41,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7759625315666199,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7699624300003052,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 42,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7588624358177185,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7558624148368835,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 43,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.77958744764328,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7735874652862549,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 44,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7975749969482422,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7945749759674072,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": true,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 45,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7881374359130859,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7781375050544739,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 46,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7682874798774719,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7592874765396118,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 47,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7977499961853027,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7957499623298645,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 48,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7748500108718872,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7688499093055725,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 49,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.792324960231781,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7893249988555908,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 50,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7770249843597412,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7690249681472778,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 51,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7983249425888062,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.792324960231781,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 52,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7623499035835266,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.754349946975708,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 53,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.788612425327301,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7796124815940857,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 54,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7424124479293823,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7344124913215637,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": true,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 55,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8055124282836914,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7965124249458313,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 56,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7900999188423157,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7820999622344971,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 57,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7753250002861023,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7693250179290771,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 58,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8022999167442322,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7942999601364136,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 59,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7794374823570251,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7724375128746033,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 60,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8093249797821045,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.8013249635696411,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 61,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8150624632835388,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.8110625147819519,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 62,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7984374761581421,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7934374809265137,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 63,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7924249172210693,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7854249477386475,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 64,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7899624705314636,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7839625477790833,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": true,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 65,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7906749844551086,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7886748909950256,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 66,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8303624391555786,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.8243624567985535,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 67,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7782999277114868,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7713000178337097,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 68,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7827374339103699,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7767375111579895,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 69,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7803500294685364,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7753499150276184,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 70,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7848625183105469,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7818624973297119,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 71,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7803500294685364,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7743499875068665,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 72,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7939749956130981,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7869749069213867,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 73,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8017374873161316,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7997374534606934,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 74,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7841249704360962,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.778124988079071,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": true,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 75,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8036749958992004,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.798675000667572,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 76,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8000875115394592,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7980874180793762,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 77,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7628499269485474,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7568499445915222,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 78,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7604374289512634,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7544375658035278,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 79,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7689500451087952,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7639500498771667,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 80,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7809750437736511,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7749749422073364,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 81,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7662874460220337,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.76128751039505,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 82,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7897374629974365,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7807374596595764,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 83,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7488624453544617,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7388624548912048,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 84,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7744874358177185,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7654874920845032,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": true,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 85,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7831124663352966,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7791124582290649,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 86,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7841374278068542,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7791374325752258,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 87,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7710749506950378,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7650749683380127,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 88,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7905124425888062,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.784512460231781,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 89,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.800399899482727,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7953999042510986,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 90,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.8118749856948853,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.8058750033378601,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 91,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7719374895095825,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7659375071525574,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 92,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7882624864578247,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7852625250816345,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 93,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7602624297142029,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7512624263763428,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 94,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.768637478351593,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7626374363899231,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": true,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 95,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7801874279975891,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.774187445640564,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 96,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7782749533653259,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7742750644683838,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 97,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7953999042510986,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7893999814987183,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
-        [
-          7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
-          0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
-          0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 98,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.7558624744415283,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7458624243736267,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
+    "best_assignment": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0
     ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
     "injected": false,
     "best_genome": [
       [
-        [
-          4,
-          9,
-          1,
-          0,
-          1,
-          1
-        ],
         [
           7,
-          11,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          8,
-          5,
-          1,
-          0,
-          0,
-          0
-        ]
-      ],
-      [
-        [
-          11,
-          9,
-          0,
-          0,
-          1,
-          0
-        ],
-        [
-          4,
-          2,
-          1,
-          0,
+          6,
           0,
-          1
-        ],
-        [
-          11,
-          13,
-          1,
-          0,
-          1,
-          1
-        ]
-      ],
-      [
-        [
-          14,
-          2,
-          0,
-          1,
-          1,
-          0
-        ],
-        [
-          8,
-          1,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          10,
-          11,
-          1,
-          0,
-          1,
-          0
-        ]
-      ],
-      [
-        [
-          8,
-          5,
-          0,
-          0,
-          1,
-          1
-        ],
-        [
-          9,
-          3,
-          1,
-          1,
-          0,
-          1
-        ],
-        [
-          10,
-          14,
-          0,
           0,
-          1,
-          1
-        ]
-      ]
-    ],
-    "val_acc": 0.9549999833106995,
-    "best_val_gap": 0.0,
-    "best_val_gap_penalty": 0.0
-  },
-  {
-    "gen": 99,
-    "best_acc": 0.9387499690055847,
-    "mean_acc": 0.762287437915802,
-    "best_fitness": 0.9387499690055847,
-    "mean_fitness": 0.7552874684333801,
-    "best_silent_frac": 0.0,
-    "best_sat_frac": 0.0,
-    "best_assignment_counts": [
-      17,
-      17
-    ],
-    "best_assignment_used": 2,
-    "best_assignment_top_class": 0,
-    "best_assignment_top_frac": 0.5,
-    "injected": false,
-    "best_genome": [
-      [
-        [
-          4,
-          9,
-          1,
           0,
-          1,
           1
         ],
         [

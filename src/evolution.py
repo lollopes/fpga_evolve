@@ -187,6 +187,32 @@ def crossover(
 
 
 # ---------------------------------------------------------------------------
+# Input-node constraint
+# ---------------------------------------------------------------------------
+
+def enforce_input_nodes(genomes: torch.Tensor, k: int) -> torch.Tensor:
+    """Pin the E node at z=0 to always read feedforward input (P[7]).
+
+    After crossover or mutation the SEL selector for the E node (node index 0)
+    at layer z=0, selector slot 0 could have been overwritten.  This repair
+    clamps it back to 7 (P[7] = feedforward sensory input) so the input layer
+    never loses its connection to external stimuli during evolution.
+
+    Parameters
+    ----------
+    genomes : [B, Z, 3, k + 2**k]
+    k       : node arity
+
+    Returns
+    -------
+    genomes with genomes[:, 0, 0, 0] == 7  (E node, z=0, first SEL = P[7])
+    """
+    genomes = genomes.clone()
+    genomes[:, 0, 0, 0] = 7   # E node (0) · z=0 · SEL slot 0 → P[7]
+    return genomes
+
+
+# ---------------------------------------------------------------------------
 # Network build / evaluate
 # ---------------------------------------------------------------------------
 
@@ -199,6 +225,10 @@ def build_lattice(
     use_positional_cues: bool,
     use_distal: bool,
     device: torch.device,
+    use_random_pool: bool = False,
+    lambda_lateral: float = 1.0,
+    lambda_depth: float = 0.5,
+    pool_wiring_seed: int = 0,
 ) -> Lattice3DNetwork:
     """Construct a Lattice3DNetwork from a packed genome population."""
     layer_genomes = [genome_pack[:, z].contiguous() for z in range(Z)]
@@ -211,6 +241,10 @@ def build_lattice(
         use_positional_cues=use_positional_cues,
         distal_seed=distal_seed,
         use_distal=use_distal,
+        use_random_pool=use_random_pool,
+        lambda_lateral=lambda_lateral,
+        lambda_depth=lambda_depth,
+        pool_wiring_seed=pool_wiring_seed,
     )
     return net.to(device)
 
@@ -420,6 +454,10 @@ def _evaluate_wta_parallel(
     use_distal: bool,
     readout_decay: float,
     device: torch.device,
+    use_random_pool: bool = False,
+    lambda_lateral: float = 1.0,
+    lambda_depth: float = 0.5,
+    pool_wiring_seed: int = 0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Score all B genomes on all N samples in a single forward pass.
 
@@ -466,6 +504,10 @@ def _evaluate_wta_parallel(
         use_positional_cues=use_positional_cues,
         use_distal=use_distal,
         device=device,
+        use_random_pool=use_random_pool,
+        lambda_lateral=lambda_lateral,
+        lambda_depth=lambda_depth,
+        pool_wiring_seed=pool_wiring_seed,
     )
     traj = big_net.run(expanded_X)                              # [NB, T, H*W]
     traj_nb = traj.reshape(N, B, T, H_ * W_)                   # [N, B, T, H*W]
@@ -552,6 +594,10 @@ def _try_write_scene(
     use_distal: bool,
     live_scene_path: "Path",
     live_meta: dict,
+    use_random_pool: bool = False,
+    lambda_lateral: float = 1.0,
+    lambda_depth: float = 0.5,
+    pool_wiring_seed: int = 0,
 ) -> None:
     """Write evo_data.js from the current best genome so the 3D viewer works immediately."""
     try:
@@ -568,6 +614,10 @@ def _try_write_scene(
             use_positional_cues=use_positional_cues,
             use_distal=use_distal,
             device=torch.device("cpu"),
+            use_random_pool=use_random_pool,
+            lambda_lateral=lambda_lateral,
+            lambda_depth=lambda_depth,
+            pool_wiring_seed=pool_wiring_seed,
         )
         scene = _build_scene(net1, batch_index=0)
         payload = {
@@ -618,6 +668,10 @@ def evolve(
     live_path: Path = None,
     live_meta: dict = None,
     live_scene_path: Path = None,
+    use_random_pool: bool = False,
+    lambda_lateral: float = 1.0,
+    lambda_depth: float = 0.5,
+    pool_wiring_seed: int = 0,
 ) -> tuple[torch.Tensor, torch.Tensor, list[dict], torch.Tensor]:
     """Run (μ+λ) elitist evolution for `n_generations` generations.
 
@@ -743,6 +797,10 @@ def evolve(
                 use_distal=use_distal,
                 readout_decay=readout_decay,
                 device=dev,
+                use_random_pool=use_random_pool,
+                lambda_lateral=lambda_lateral,
+                lambda_depth=lambda_depth,
+                pool_wiring_seed=pool_wiring_seed,
             )
         else:
             net = build_lattice(
@@ -753,6 +811,10 @@ def evolve(
                 use_positional_cues=use_positional_cues,
                 use_distal=use_distal,
                 device=dev,
+                use_random_pool=use_random_pool,
+                lambda_lateral=lambda_lateral,
+                lambda_depth=lambda_depth,
+                pool_wiring_seed=pool_wiring_seed,
             )
             accs, silent_frac, sat_frac, assignments = evaluate_wta(
                 net, X_batch, y_batch, n_classes, readout_decay=readout_decay
@@ -768,6 +830,10 @@ def evolve(
                 use_positional_cues=use_positional_cues,
                 use_distal=use_distal,
                 device=dev,
+                use_random_pool=use_random_pool,
+                lambda_lateral=lambda_lateral,
+                lambda_depth=lambda_depth,
+                pool_wiring_seed=pool_wiring_seed,
             )
             val_accs, _, _ = classify_wta(
                 val_net, X_val, y_val, assignments, n_classes, readout_decay=readout_decay
@@ -821,6 +887,10 @@ def evolve(
                     use_positional_cues=use_positional_cues,
                     use_distal=use_distal,
                     device=dev,
+                    use_random_pool=use_random_pool,
+                    lambda_lateral=lambda_lateral,
+                    lambda_depth=lambda_depth,
+                    pool_wiring_seed=pool_wiring_seed,
                 )
                 val_acc = float(
                     classify_wta(
@@ -875,6 +945,10 @@ def evolve(
                 use_distal=use_distal,
                 live_scene_path=live_scene_path,
                 live_meta=live_meta,
+                use_random_pool=use_random_pool,
+                lambda_lateral=lambda_lateral,
+                lambda_depth=lambda_depth,
+                pool_wiring_seed=pool_wiring_seed,
             )
 
         val_str = ""
@@ -907,6 +981,7 @@ def evolve(
             children = parents_a.clone()
 
         children = mutate(children, k, lut_rate, sel_rate, rng)
+        children = enforce_input_nodes(children, k)
         genomes = torch.cat([elites, children], dim=0)
 
     final_net = build_lattice(
@@ -917,6 +992,10 @@ def evolve(
         use_positional_cues=use_positional_cues,
         use_distal=use_distal,
         device=dev,
+        use_random_pool=use_random_pool,
+        lambda_lateral=lambda_lateral,
+        lambda_depth=lambda_depth,
+        pool_wiring_seed=pool_wiring_seed,
     )
     final_accs, final_silent_frac, final_sat_frac, final_assignments = evaluate_wta(
         final_net, X_pool, y_pool, n_classes, readout_decay=readout_decay

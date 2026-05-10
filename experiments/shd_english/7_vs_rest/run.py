@@ -56,7 +56,9 @@ VAL_GAP_WEIGHT = cfg.get("val_gap_weight", 0.0)
 WARM_START_INPUT = cfg.get("warm_start_input", False)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-RESULTS_DIR = EXP_DIR / "results"
+RESULTS_DIR    = EXP_DIR / "results"
+EXP_VIEWER_DIR = REPO_ROOT / "viewer" / "evo_data" / f"{EXP_DIR.parent.name}__{EXP_DIR.name}"
+EXP_VIEWER_DIR.mkdir(parents=True, exist_ok=True)
 
 assert n_classes_for_task(TASK) == N_CLASSES, (
     f"TASK={TASK!r} has {n_classes_for_task(TASK)} classes but n_classes={N_CLASSES} in config"
@@ -135,9 +137,9 @@ final_genomes, final_accs, history, best_assignment = evolve(
     identity_seed=IDENTITY_SEED,
     warm_start_input=WARM_START_INPUT,
     device=DEVICE,
-    live_path=REPO_ROOT / "viewer" / "evo_live.json",
+    live_path=EXP_VIEWER_DIR / "evo_live.json",
     live_meta={"experiment": EXP_DIR.name, "task": TASK},
-    live_scene_path=REPO_ROOT / "viewer" / "evo_data.js",
+    live_scene_path=EXP_VIEWER_DIR / "evo_data.js",
 )
 
 best_net = build_lattice(

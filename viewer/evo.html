@@ -178,6 +178,13 @@
   }
   .ctrl-btn:hover { border-color: var(--muted); color: var(--accent); }
   .ctrl-btn.active { border-color: var(--accent); color: var(--accent); }
+  #exp-select {
+    font-family: inherit; font-size: 10px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 1px 5px; cursor: pointer; max-width: 220px;
+  }
+  #exp-select:focus { outline: none; border-color: var(--accent); }
   input[type=range].cslider {
     -webkit-appearance: none; appearance: none;
     height: 3px; border-radius: 2px; background: var(--border);
@@ -233,6 +240,11 @@
       <span class="ctrl-lbl">mod spacing</span>
       <input type="range" class="cslider vis-slider" id="modspread-slider" min="0.05" max="3" step="0.05" value="1">
     </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">exp</span>
+      <select id="exp-select"><option value="">— loading —</option></select>
+    </div>
   </div>
 
   <div id="network-wrap">
@@ -278,9 +290,46 @@
 
 </div>
 
-<script src="evo_data.js"></script>
 <script>
-(() => {
+const _currentExp = new URLSearchParams(window.location.search).get('exp') || '';
+
+async function _bootViewer() {
+  // Populate experiment selector
+  const sel = document.getElementById('exp-select');
+  try {
+    const exps = await fetch('/api/experiments').then(r => r.json());
+    if (exps.length === 0) {
+      sel.innerHTML = '<option value="">— no experiments —</option>';
+    } else {
+      sel.innerHTML = exps.map(e =>
+        `<option value="${e}"${e === _currentExp ? ' selected' : ''}>${e.replace(/__/g, ' / ')}</option>`
+      ).join('');
+    }
+    // Auto-select first experiment on first load
+    if (!_currentExp && exps.length > 0) {
+      window.location.search = '?exp=' + encodeURIComponent(exps[0]);
+      return;
+    }
+  } catch(e) {
+    sel.innerHTML = '<option value="">— unavailable —</option>';
+  }
+
+  sel.addEventListener('change', () => {
+    if (sel.value) window.location.search = '?exp=' + encodeURIComponent(sel.value);
+  });
+
+  if (!_currentExp) { _initViewer(); return; }
+
+  // Dynamically load the chosen experiment's evo_data.js
+  window.EVO_DATA = null;
+  const s = document.createElement('script');
+  s.src = 'evo_data/' + _currentExp + '/evo_data.js?t=' + Date.now();
+  s.onload  = _initViewer;
+  s.onerror = _initViewer;
+  document.head.appendChild(s);
+}
+
+function _initViewer() {
   const D = window.EVO_DATA || null;
   const S    = D ? D.scene : null;
   const hist = D ? (D.history || []) : [];
@@ -1117,7 +1166,7 @@
   }
 
   function pollLive() {
-    fetch('evo_live.json?' + Date.now())
+    fetch('evo_data/' + _currentExp + '/evo_live.json?' + Date.now())
       .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function(data) {
         applyLiveData(data);
@@ -1132,7 +1181,9 @@
   } else if (hist.length) {
     setLiveStatus('done');
   }
-})();
+}
+
+_bootViewer();
 </script>
 </body>
 </html>

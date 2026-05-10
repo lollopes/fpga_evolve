@@ -56,9 +56,15 @@ IDENTITY_SEED = cfg["identity_seed"]
 READOUT_DECAY = cfg.get("readout_decay", 0.0)
 VAL_GAP_WEIGHT = cfg.get("val_gap_weight", 0.0)
 WARM_START_INPUT = cfg.get("warm_start_input", False)
+USE_RANDOM_POOL = cfg.get("use_random_pool", False)
+LAMBDA_LATERAL = cfg.get("lambda_lateral", 1.0)
+LAMBDA_DEPTH = cfg.get("lambda_depth", 0.5)
+POOL_WIRING_SEED = cfg.get("pool_wiring_seed", 0)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-RESULTS_DIR = EXP_DIR / "results"
+RESULTS_DIR    = EXP_DIR / "results"
+EXP_VIEWER_DIR = REPO_ROOT / "viewer" / "evo_data" / f"{EXP_DIR.parent.name}__{EXP_DIR.name}"
+EXP_VIEWER_DIR.mkdir(parents=True, exist_ok=True)
 
 assert n_classes_for_task(TASK) == N_CLASSES, (
     f"TASK={TASK!r} has {n_classes_for_task(TASK)} classes but n_classes={N_CLASSES} in config"
@@ -102,7 +108,9 @@ print(
     f"Z={Z} grid_size={GRID_SIZE} k={K} T={N_TIME_BINS} | "
     f"readout_decay={READOUT_DECAY:.2f} val_gap_weight={VAL_GAP_WEIGHT:.2f} | "
     f"first_saccade_only={FIRST_SACCADE_ONLY} train/class={N_TRAIN_PER_CLASS} "
-    f"test/class={N_TEST_PER_CLASS} val_fraction={VAL_FRACTION} | device={DEVICE}"
+    f"test/class={N_TEST_PER_CLASS} val_fraction={VAL_FRACTION} | "
+    f"random_pool={USE_RANDOM_POOL} λ_lat={LAMBDA_LATERAL} λ_dep={LAMBDA_DEPTH} | "
+    f"device={DEVICE}"
 )
 
 X_train, y_train, X_test, y_test = load_nmnist(
@@ -193,9 +201,13 @@ final_genomes, final_accs, history, best_assignment = evolve(
     identity_seed=IDENTITY_SEED,
     warm_start_input=WARM_START_INPUT,
     device=DEVICE,
-    live_path=REPO_ROOT / "viewer" / "evo_live.json",
+    live_path=EXP_VIEWER_DIR / "evo_live.json",
     live_meta={"experiment": EXP_DIR.name, "task": TASK},
-    live_scene_path=REPO_ROOT / "viewer" / "evo_data.js",
+    live_scene_path=EXP_VIEWER_DIR / "evo_data.js",
+    use_random_pool=USE_RANDOM_POOL,
+    lambda_lateral=LAMBDA_LATERAL,
+    lambda_depth=LAMBDA_DEPTH,
+    pool_wiring_seed=POOL_WIRING_SEED,
 )
 
 best_net = build_lattice(
@@ -210,6 +222,10 @@ best_net = build_lattice(
     use_positional_cues=USE_POSITIONAL_CUES,
     use_distal=USE_DISTAL,
     device=DEVICE,
+    use_random_pool=USE_RANDOM_POOL,
+    lambda_lateral=LAMBDA_LATERAL,
+    lambda_depth=LAMBDA_DEPTH,
+    pool_wiring_seed=POOL_WIRING_SEED,
 )
 val_acc = None
 if X_val is not None:
