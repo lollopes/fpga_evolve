@@ -9,3 +9,5 @@ __pycache__
 viewer/lattice_scene.js
 datasets/NMNIST/data/
 datasets/SHD/data/
+
+datasets/
