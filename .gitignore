@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Datasets (large binary data)
+datasets/
+
+# Experiment outputs (saved per-run, not versioned)
+experiments/**/result.json
+experiments/**/genome.json
+experiments/**/checkpoint.pt
+experiments/nmnist/results/
+
+# Logs
+*.log
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

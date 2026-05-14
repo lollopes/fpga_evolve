@@ -126,7 +126,7 @@ class Genome:
         for c in range(n_outputs):
             nid = input_size + c
             output_ids.append(nid)
-            nodes[nid] = NodeGene(id=nid, kind="O", enabled=True, lut=lut_zero(k), output_class=c)
+            nodes[nid] = NodeGene(id=nid, kind="O", enabled=True, lut=random_lut(k, rng), output_class=c)
 
         registry.reserve_node_ids(input_size + n_outputs)
 
@@ -146,7 +146,7 @@ class Genome:
         e_ids: List[int] = []
         for _ in range(initial_e_nodes):
             nid = registry.new_node_id()
-            nodes[nid] = NodeGene(id=nid, kind="E", enabled=True, lut=lut_zero(k))
+            nodes[nid] = NodeGene(id=nid, kind="E", enabled=True, lut=random_lut(k, rng))
             e_ids.append(nid)
 
         output_free: Dict[int, List[int]] = {}

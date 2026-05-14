@@ -1,0 +1,33 @@
+{
+    "task": "7_vs_rest",
+    "dataset": {
+        "n_time_bins": 10,
+        "n_train_per_class": 200,
+        "n_val_per_class": 100
+    },
+    "neat": {
+        "pop_size": 100,
+        "generations": 200,
+        "k": 4,
+        "initial_connections_per_output": 10,
+        "initial_e_nodes": 10,
+        "lut_bit_rate": 0.06,
+        "p_add_connection": 0.30,
+        "p_add_node": 0.3,
+        "p_toggle_connection": 0.02,
+        "p_crossover": 0.35,
+        "p_new_node_is_inhibitory": 0.2,
+        "p_mutate_node_type": 0.01,
+        "allow_output_feedback": false,
+        "compatibility_threshold": 0.5,
+        "tournament_k": 6,
+        "c_disjoint": 1.0,
+        "c_lut": 0.4,
+        "c_type": 0.2,
+        "max_stale": 15,
+        "elite_min_size": 5,
+        "batch_size": 128,
+        "fitness_sample": 0,
+        "seed": 42
+    }
+}

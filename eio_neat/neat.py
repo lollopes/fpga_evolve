@@ -75,9 +75,6 @@ def _make_initial_population(
     for _ in range(config.pop_size):
         g = template.clone()
         g.mutate_luts(rng, config.lut_bit_rate)
-        for node in g.nodes.values():
-            if node.lut is not None and len(node.lut) > 0:
-                node.lut[0] = 0
         if rng.random() < 0.5:
             g.add_connection_mutation(registry, rng, allow_output_feedback=config.allow_output_feedback)
         pop.append(g)
@@ -305,7 +302,7 @@ def evolve(
             print(
                 f"gen {gen:4d} | "
                 f"train={rec['best_train_acc']:.1%}  val={rec['best_val_acc']:.1%} "
-                f"ce={rec['best_ce']:.3f}  fit={rec['best_fitness']:.3f}  mean={rec['mean_fitness']:.3f} | "
+                f"ce={rec['best_ce']:.3f} | "
                 f"species={rec['n_species']}  "
                 f"E={rec['best_hidden_E']}  I={rec['best_hidden_I']}  "
                 f"conn={rec['best_connections']}  "
