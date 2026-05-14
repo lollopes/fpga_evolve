@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import math
+import multiprocessing as mp
 import random
 import time
 import numpy as np
@@ -10,6 +11,55 @@ import torch
 
 from .genome import Genome, InnovationRegistry, genome_distance, crossover
 from .network import evaluate_genome
+
+# ---------------------------------------------------------------------------
+# Parallel genome evaluation
+# ---------------------------------------------------------------------------
+# Module-level globals are inherited by forked worker processes on Linux
+# without copying (copy-on-write). Only the genome (small) is sent per task.
+
+_eval_X: Optional[torch.Tensor] = None
+_eval_y: Optional[torch.Tensor] = None
+_eval_device_str: str = "cpu"
+_eval_batch_size: int = 64
+
+
+def _eval_worker(genome: Genome) -> Tuple[float, Dict]:
+    dev = torch.device(_eval_device_str)
+    return evaluate_genome(genome, _eval_X, _eval_y, dev, _eval_batch_size)
+
+
+def _evaluate_population(
+    population: List[Genome],
+    X_fit: torch.Tensor,
+    y_fit: torch.Tensor,
+    dev: torch.device,
+    batch_size: int,
+    n_workers: int,
+) -> None:
+    """Evaluate all genomes, updating .fitness and .metrics in place."""
+    global _eval_X, _eval_y, _eval_device_str, _eval_batch_size
+
+    if n_workers <= 1:
+        for g in population:
+            f, m = evaluate_genome(g, X_fit, y_fit, device=dev, batch_size=batch_size)
+            g.fitness = f
+            g.metrics = m
+        return
+
+    # Set globals before forking so workers inherit them via copy-on-write.
+    _eval_X = X_fit
+    _eval_y = y_fit
+    _eval_device_str = str(dev)
+    _eval_batch_size = batch_size
+
+    ctx = mp.get_context("fork")
+    with ctx.Pool(n_workers) as pool:
+        results = pool.map(_eval_worker, population)
+
+    for g, (f, m) in zip(population, results):
+        g.fitness = f
+        g.metrics = m
 
 
 @dataclass
@@ -43,6 +93,7 @@ class NEATConfig:
     max_stale: int = 15
     fitness_sample: int = 0  # 0 = full X_train; >0 = random subsample per generation
 
+    n_workers: int = 1   # parallel genome evaluation workers (Linux fork only)
     seed: int = 42
     log_every: int = 1
 
@@ -215,6 +266,7 @@ def evolve(
     n_outputs: int,
     config: NEATConfig,
     device: torch.device | None = None,
+    on_generation=None,
 ) -> Tuple[Genome, List[dict], InnovationRegistry]:
     """
     Evolve a Typed E/I/O Boolean NEAT population on the given dataset.
@@ -249,14 +301,9 @@ def evolve(
         else:
             X_fit, y_fit = X_train, y_train
 
-        for g in population:
-            f, m = evaluate_genome(
-                g, X_fit, y_fit,
-                device=dev,
-                batch_size=config.batch_size,
-            )
-            g.fitness = f
-            g.metrics = m
+        _evaluate_population(
+            population, X_fit, y_fit, dev, config.batch_size, config.n_workers
+        )
 
         population.sort(key=lambda g: g.fitness if g.fitness is not None else -1e9, reverse=True)
         if best_train is None or (population[0].fitness or -1e9) > (best_train.fitness or -1e9):
@@ -297,6 +344,8 @@ def evolve(
             "elapsed_s": time.time() - t0,
         }
         history.append(rec)
+        if on_generation is not None:
+            on_generation(rec)
 
         if config.log_every and gen % config.log_every == 0:
             print(

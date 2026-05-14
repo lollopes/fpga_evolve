@@ -1,18 +1,19 @@
 {
     "task": "7_vs_rest",
     "dataset": {
-        "n_time_bins": 10,
+        "time_window": 10000,
         "n_train_per_class": 200,
-        "n_val_per_class": 100
+        "n_val_per_class": 50,
+        "n_test_per_class": null
     },
     "neat": {
         "pop_size": 100,
-        "generations": 200,
+        "generations": 50,
         "k": 4,
-        "initial_connections_per_output": 10,
+        "initial_connections_per_output": 15,
         "initial_e_nodes": 10,
         "lut_bit_rate": 0.06,
-        "p_add_connection": 0.30,
+        "p_add_connection": 0.3,
         "p_add_node": 0.3,
         "p_toggle_connection": 0.02,
         "p_crossover": 0.35,
@@ -28,6 +29,7 @@
         "elite_min_size": 5,
         "batch_size": 128,
         "fitness_sample": 0,
-        "seed": 42
+        "seed": 42,
+        "n_workers": 1
     }
 }

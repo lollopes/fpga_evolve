@@ -42,57 +42,39 @@ _SHD_ENGLISH_DIGITS = (
 # Transform pipeline
 # ---------------------------------------------------------------------------
 
-def _make_transform(n_time_bins: int, grid_size: Optional[int]):
+def _make_transform(time_window: int):
     """
     Build the tonic-compatible transform pipeline.
 
-    ToFrame bins events into n_time_bins equal windows  → [T, 2, H, W]
-    _pool_binarize merges polarities, pools, binarizes  → [T, grid_size²]
-
-    If grid_size is None the full 34×34 spatial resolution is kept
-    (→ 1156 features per step).
+    ToFrame bins events into fixed-duration windows of `time_window` µs → [T, 2, 34, 34]
+    T varies per sample depending on recording duration.
+    _binarize_flatten keeps both polarities and binarizes              → [T, 34*34*2]
     """
 
-    def _pool_binarize(frames: np.ndarray) -> np.ndarray:
-        # frames: [T, 2, H, W]  (int counts from ToFrame)
-        spatial = frames.sum(axis=1)          # merge polarities → [T, H, W]
-        T, H, W = spatial.shape
-
-        if grid_size is not None and grid_size < H:
-            gh = gw = grid_size
-            step_h = H // gh
-            step_w = W // gw
-            crop_h = step_h * gh
-            crop_w = step_w * gw
-            pooled = (
-                spatial[:, :crop_h, :crop_w]
-                .reshape(T, gh, step_h, gw, step_w)
-                .sum(axis=(2, 4))              # [T, gh, gw]
-            )
-        else:
-            pooled = spatial                  # no spatial downsampling
-
-        return (pooled > 0).astype(np.uint8).reshape(T, -1)   # [T, F]
+    def _binarize_flatten(frames: np.ndarray) -> np.ndarray:
+        # frames: [T, 2, 34, 34]  (int counts from ToFrame)
+        return (frames > 0).astype(np.uint8).reshape(frames.shape[0], -1)  # [T, 2312]
 
     return T_tonic.Compose([
-        T_tonic.ToFrame(sensor_size=SENSOR_SIZE, n_time_bins=n_time_bins),
-        _pool_binarize,
+        T_tonic.ToFrame(sensor_size=SENSOR_SIZE, time_window=time_window),
+        _binarize_flatten,
     ])
 
 
-def _make_shd_transform(n_time_bins: int):
+def _make_shd_transform(time_window: int):
     """
     Build the SHD transform pipeline.
 
-    ToFrame bins events into n_time_bins equal windows  → [T, 1, 700]
-    flatten/binarize keeps the 700 cochlea channels      → [T, 700]
+    ToFrame bins events into fixed-duration windows of `time_window` µs → [T, 1, 700]
+    T varies per sample depending on recording duration.
+    flatten/binarize keeps the 700 cochlea channels                      → [T, 700]
     """
 
     def _flatten_binarize(frames: np.ndarray) -> np.ndarray:
         return (frames > 0).astype(np.uint8).reshape(frames.shape[0], -1)
 
     return T_tonic.Compose([
-        T_tonic.ToFrame(sensor_size=SHD_SENSOR_SIZE, n_time_bins=n_time_bins),
+        T_tonic.ToFrame(sensor_size=SHD_SENSOR_SIZE, time_window=time_window),
         _flatten_binarize,
     ])
 
@@ -203,7 +185,7 @@ def _load_split(
     class_idx = _build_class_index(dataset, data_root, train)
 
     chosen = _choose_nmnist_examples(class_idx, task, n_per_class, rng)
-    return _load_selected_samples(dataset, chosen)
+    return _load_nmnist_samples(dataset, chosen)
 
 
 def _load_selected_samples(dataset, chosen: list[tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
@@ -215,6 +197,52 @@ def _load_selected_samples(dataset, chosen: list[tuple[int, int]]) -> Tuple[np.n
         y.append(label)
 
     return np.stack(X), np.array(y, dtype=np.int64)
+
+
+def _load_nmnist_samples(dataset, chosen: list[tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Load N-MNIST samples and zero-pad to the maximum T in this set.
+
+    N-MNIST recordings have variable duration when using time_window framing,
+    so ToFrame produces a different number of steps per sample. All samples are
+    padded with zeros to the longest sequence in the set.
+    """
+    X, y = [], []
+    for global_idx, label in chosen:
+        x, _ = dataset[global_idx]   # x: [T_i, 2312]
+        X.append(x)
+        y.append(label)
+
+    T_max = max(x.shape[0] for x in X)
+    F     = X[0].shape[1]
+    X_pad = np.zeros((len(X), T_max, F), dtype=X[0].dtype)
+    for i, x in enumerate(X):
+        X_pad[i, :x.shape[0]] = x
+
+    return X_pad, np.array(y, dtype=np.int64)
+
+
+def _load_shd_samples(dataset, chosen: list[tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Load SHD samples and zero-pad to the maximum T in this set.
+
+    SHD recordings have variable duration, so ToFrame with time_window produces
+    a different number of steps per sample. All samples are padded with zeros to
+    the longest sequence in the set; zero frames produce no spikes in the network.
+    """
+    X, y = [], []
+    for global_idx, label in chosen:
+        x, _ = dataset[global_idx]   # x: [T_i, 700]
+        X.append(x)
+        y.append(label)
+
+    T_max = max(x.shape[0] for x in X)
+    F     = X[0].shape[1]
+    X_pad = np.zeros((len(X), T_max, F), dtype=X[0].dtype)
+    for i, x in enumerate(X):
+        X_pad[i, :x.shape[0]] = x
+
+    return X_pad, np.array(y, dtype=np.int64)
 
 
 def _shuffle_chosen(
@@ -387,23 +415,14 @@ def _choose_nmnist_train_val_examples(
     return _shuffle_chosen(train_chosen, rng), _shuffle_chosen(val_chosen, rng)
 
 
-def _load_shd_split(
-    data_root: str,
-    train: bool,
-    transform,
+def _choose_shd_examples(
+    class_idx: dict[int, list[int]],
+    english_ids: list[int],
     task: str,
     n_per_class: Optional[int],
     rng: np.random.Generator,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Load one SHD split, restricted to the English spoken digit classes."""
-
-    dataset = tonic.datasets.SHD(
-        save_to=data_root,
-        train=train,
-        transform=transform,
-    )
-    class_idx = _build_shd_class_index(dataset)
-    english_ids = _shd_english_digit_ids(dataset)
+) -> list[tuple[int, int]]:
+    """Choose labeled SHD examples for one split without loading event data."""
 
     if task == "7_vs_rest":
         pos_class = english_ids[7]
@@ -418,7 +437,7 @@ def _load_shd_split(
             idxs = rng.permutation(class_idx[c])
             neg.extend(idxs[:n_neg_each].tolist() if n_neg_each else idxs.tolist())
         neg_arr = rng.permutation(neg)[:len(pos)].tolist()
-        chosen = [(i, 1) for i in pos] + [(i, 0) for i in neg_arr]
+        chosen: list[tuple[int, int]] = [(i, 1) for i in pos] + [(i, 0) for i in neg_arr]
 
     elif task == "0_vs_1":
         c0, c1 = english_ids[0], english_ids[1]
@@ -438,15 +457,102 @@ def _load_shd_split(
             idxs = rng.permutation(class_idx[class_id])[:n_per_class].tolist()
             chosen.extend((i, digit) for i in idxs)
 
-    chosen = [chosen[i] for i in rng.permutation(len(chosen))]
+    return _shuffle_chosen(chosen, rng)
 
-    X, y = [], []
-    for global_idx, label in chosen:
-        x, _ = dataset[global_idx]
-        X.append(x)
-        y.append(label)
 
-    return np.stack(X), np.array(y, dtype=np.int64)
+def _choose_shd_train_val_examples(
+    class_idx: dict[int, list[int]],
+    english_ids: list[int],
+    task: str,
+    n_train_per_class: Optional[int],
+    n_val_per_class: Optional[int],
+    rng: np.random.Generator,
+) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+    """Choose disjoint labeled SHD train/val examples from the official train split."""
+    train_chosen: list[tuple[int, int]] = []
+    val_chosen: list[tuple[int, int]] = []
+
+    if task == "7_vs_rest":
+        pos_class = english_ids[7]
+        neg_classes = [english_ids[d] for d in range(10) if d != 7]
+
+        pos_pool = rng.permutation(class_idx[pos_class]).tolist()
+        n_train_pos, n_val_pos = _resolve_split_counts(
+            len(pos_pool), n_train_per_class, n_val_per_class, "SHD English digit 7"
+        )
+        train_chosen.extend((i, 1) for i in pos_pool[:n_train_pos])
+        val_chosen.extend((i, 1) for i in pos_pool[n_train_pos:n_train_pos + n_val_pos])
+
+        n_neg_each_train = (n_train_pos + len(neg_classes) - 1) // len(neg_classes) if n_train_pos else 0
+        n_neg_each_val   = (n_val_pos   + len(neg_classes) - 1) // len(neg_classes) if n_val_pos   else 0
+
+        train_neg: list[int] = []
+        val_neg:   list[int] = []
+        for c in neg_classes:
+            idxs = rng.permutation(class_idx.get(c, [])).tolist()
+            need = n_neg_each_train + n_neg_each_val
+            if need > len(idxs):
+                raise ValueError(
+                    f"SHD class {c}: requested {need} negatives for train/val "
+                    f"but only {len(idxs)} available"
+                )
+            train_neg.extend(idxs[:n_neg_each_train])
+            val_neg.extend(idxs[n_neg_each_train:n_neg_each_train + n_neg_each_val])
+
+        train_neg = rng.permutation(train_neg)[:n_train_pos].tolist()
+        val_neg   = rng.permutation(val_neg)[:n_val_pos].tolist()
+        train_chosen.extend((i, 0) for i in train_neg)
+        val_chosen.extend((i, 0) for i in val_neg)
+
+    elif task == "0_vs_1":
+        for src_digit, label in ((0, 0), (1, 1)):
+            idxs = rng.permutation(class_idx[english_ids[src_digit]]).tolist()
+            n_train, n_val = _resolve_split_counts(
+                len(idxs), n_train_per_class, n_val_per_class,
+                f"SHD English digit {src_digit}"
+            )
+            train_chosen.extend((i, label) for i in idxs[:n_train])
+            val_chosen.extend((i, label) for i in idxs[n_train:n_train + n_val])
+
+    elif task == "0_vs_8":
+        for src_digit, label in ((0, 0), (8, 1)):
+            idxs = rng.permutation(class_idx[english_ids[src_digit]]).tolist()
+            n_train, n_val = _resolve_split_counts(
+                len(idxs), n_train_per_class, n_val_per_class,
+                f"SHD English digit {src_digit}"
+            )
+            train_chosen.extend((i, label) for i in idxs[:n_train])
+            val_chosen.extend((i, label) for i in idxs[n_train:n_train + n_val])
+
+    else:   # 10class
+        for digit, class_id in enumerate(english_ids):
+            idxs = rng.permutation(class_idx[class_id]).tolist()
+            n_train, n_val = _resolve_split_counts(
+                len(idxs), n_train_per_class, n_val_per_class,
+                f"SHD English digit {digit}"
+            )
+            train_chosen.extend((i, digit) for i in idxs[:n_train])
+            val_chosen.extend((i, digit) for i in idxs[n_train:n_train + n_val])
+
+    return _shuffle_chosen(train_chosen, rng), _shuffle_chosen(val_chosen, rng)
+
+
+def _load_shd_split(
+    data_root: str,
+    train: bool,
+    transform,
+    task: str,
+    n_per_class: Optional[int],
+    rng: np.random.Generator,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Load one SHD split, restricted to the English spoken digit classes."""
+
+    dataset     = tonic.datasets.SHD(save_to=data_root, train=train, transform=transform)
+    class_idx   = _build_shd_class_index(dataset)
+    english_ids = _shd_english_digit_ids(dataset)
+    chosen      = _choose_shd_examples(class_idx, english_ids, task, n_per_class, rng)
+
+    return _load_shd_samples(dataset, chosen)
 
 
 # ---------------------------------------------------------------------------
@@ -465,8 +571,7 @@ def n_classes_for_task(task: str) -> int:
 def load_nmnist(
     data_root: str = _DEFAULT_DATA_ROOT,
     task: str = "7_vs_rest",
-    n_time_bins: int = 10,
-    grid_size: Optional[int] = 16,
+    time_window: int = 1000,
     n_train_per_class: Optional[int] = 200,
     n_val_per_class: Optional[int] = 100,
     seed: int = 42,
@@ -480,33 +585,30 @@ def load_nmnist(
     ----------
     data_root           : directory where tonic will find (or download) NMNIST
     task                : "7_vs_rest" | "0_vs_1" | "0_vs_8" | "10class"
-    n_time_bins         : fixed temporal bins per sample (T axis)
-    grid_size           : spatial downsampling side length (Column expects 16 → 256
-                          inputs/step). Pass None to keep full 34×34 resolution.
+    time_window         : frame duration in µs (ToFrame time_window parameter).
+                          Both polarities are kept; samples are zero-padded to
+                          the longest sequence in each split. F = 34*34*2 = 2312.
     n_train_per_class   : samples per class from Train split (None = all)
     n_val_per_class     : samples per class from Test split  (None = all)
     seed                : RNG seed for reproducible subsampling
     device              : torch device for output tensors (default cpu)
     first_saccade_only  : if True, use only the first of the three N-MNIST saccades
-                          (recommended: cleaner temporal structure, consistent with
-                          most SNN benchmarks)
 
     Returns
     -------
-    X_train : [N_train, T, F] long   F = grid_size² (or 34*34 if grid_size=None)
+    X_train : [N_train, T_train, 2312] long
     y_train : [N_train] long
-    X_val   : [N_val,   T, F] long
+    X_val   : [N_val,   T_val,   2312] long
     y_val   : [N_val]   long
     """
     dev = device or torch.device("cpu")
     rng = np.random.default_rng(seed)
     n_classes_for_task(task)   # validate early
 
-    transform = _make_transform(n_time_bins, grid_size)
-    grid_str  = f"{grid_size}×{grid_size}" if grid_size else "34×34 (no pool)"
+    transform = _make_transform(time_window)
 
     print(
-        f"Loading N-MNIST [{task}]  T={n_time_bins}  grid={grid_str}  "
+        f"Loading N-MNIST [{task}]  time_window={time_window}µs  input=34×34×2  "
         f"first_saccade_only={first_saccade_only}"
     )
 
@@ -530,8 +632,7 @@ def load_nmnist(
 def load_nmnist_train_val_test(
     data_root: str = _DEFAULT_DATA_ROOT,
     task: str = "7_vs_rest",
-    n_time_bins: int = 10,
-    grid_size: Optional[int] = 16,
+    time_window: int = 1000,
     n_train_per_class: Optional[int] = 200,
     n_val_per_class: Optional[int] = 100,
     n_test_per_class: Optional[int] = None,
@@ -545,16 +646,18 @@ def load_nmnist_train_val_test(
     Train and validation are disjoint subsets drawn from the official N-MNIST
     training split. The final test set is drawn from the official N-MNIST test
     split and should be used only once after model selection.
+
+    Both polarities are kept (F = 34*34*2 = 2312). Each split is zero-padded
+    to the longest sequence in that split.
     """
     dev = device or torch.device("cpu")
     rng = np.random.default_rng(seed)
     n_classes_for_task(task)   # validate early
 
-    transform = _make_transform(n_time_bins, grid_size)
-    grid_str  = f"{grid_size}×{grid_size}" if grid_size else "34×34 (no pool)"
+    transform = _make_transform(time_window)
 
     print(
-        f"Loading N-MNIST [{task}]  T={n_time_bins}  grid={grid_str}  "
+        f"Loading N-MNIST [{task}]  time_window={time_window}µs  input=34×34×2  "
         f"first_saccade_only={first_saccade_only}"
     )
 
@@ -582,9 +685,9 @@ def load_nmnist_train_val_test(
     test_class_idx = _build_class_index(test_dataset, data_root, False)
     test_chosen = _choose_nmnist_examples(test_class_idx, task, n_test_per_class, rng)
 
-    X_tr, y_tr = _load_selected_samples(train_dataset, train_chosen)
-    X_va, y_va = _load_selected_samples(train_dataset, val_chosen)
-    X_te, y_te = _load_selected_samples(test_dataset, test_chosen)
+    X_tr, y_tr = _load_nmnist_samples(train_dataset, train_chosen)
+    X_va, y_va = _load_nmnist_samples(train_dataset, val_chosen)
+    X_te, y_te = _load_nmnist_samples(test_dataset,  test_chosen)
 
     print(f"  train: {X_tr.shape}  val: {X_va.shape}  test: {X_te.shape}")
 
@@ -601,7 +704,7 @@ def load_nmnist_train_val_test(
 def load_shd(
     data_root: str = _DEFAULT_SHD_DATA_ROOT,
     task: str = "7_vs_rest",
-    n_time_bins: int = 10,
+    time_window: int = 10000,
     n_train_per_class: Optional[int] = 200,
     n_val_per_class: Optional[int] = 100,
     seed: int = 42,
@@ -616,7 +719,9 @@ def load_shd(
     data_root           : directory where tonic will find (or download) SHD
     task                : "7_vs_rest" | "0_vs_1" | "0_vs_8" | "10class"
                           over the English spoken digits only
-    n_time_bins         : fixed temporal bins per sample (T axis)
+    time_window         : frame duration in µs (ToFrame time_window parameter).
+                          Samples have variable T; each split is zero-padded to
+                          the longest sequence in that split.
     n_train_per_class   : samples per English class from Train split (None = all)
     n_val_per_class     : samples per English class from Test split  (None = all)
     seed                : RNG seed for reproducible subsampling
@@ -626,18 +731,18 @@ def load_shd(
 
     Returns
     -------
-    X_train : [N_train, T, 700] long
+    X_train : [N_train, T_train, 700] long
     y_train : [N_train] long
-    X_val   : [N_val,   T, 700] long  (or empty if include_test_split=False)
+    X_val   : [N_val,   T_val,   700] long  (or empty if include_test_split=False)
     y_val   : [N_val]   long
     """
     dev = device or torch.device("cpu")
     rng = np.random.default_rng(seed)
     n_classes_for_task(task)   # validate early
 
-    transform = _make_shd_transform(n_time_bins)
+    transform = _make_shd_transform(time_window)
 
-    print(f"Loading SHD English digits [{task}]  T={n_time_bins}  input=1x700")
+    print(f"Loading SHD English digits [{task}]  time_window={time_window}µs  input=700")
 
     X_tr, y_tr = _load_shd_split(
         data_root, True, transform, task, n_train_per_class, rng
@@ -648,7 +753,7 @@ def load_shd(
             data_root, False, transform, task, n_val_per_class, rng
         )
     else:
-        X_va = np.empty((0, n_time_bins, SHD_SENSOR_SIZE[0]), dtype=np.uint8)
+        X_va = np.empty((0, 0, SHD_SENSOR_SIZE[0]), dtype=np.uint8)
         y_va = np.empty((0,), dtype=np.int64)
 
     print(f"  train: {X_tr.shape}  val: {X_va.shape}")
@@ -658,4 +763,82 @@ def load_shd(
         torch.from_numpy(y_tr).long().to(dev),
         torch.from_numpy(X_va).long().to(dev),
         torch.from_numpy(y_va).long().to(dev),
+    )
+
+
+def load_shd_train_val_test(
+    data_root: str = _DEFAULT_SHD_DATA_ROOT,
+    task: str = "7_vs_rest",
+    time_window: int = 10000,
+    n_train_per_class: Optional[int] = 200,
+    n_val_per_class: Optional[int] = 50,
+    n_test_per_class: Optional[int] = None,
+    seed: int = 42,
+    device: Optional[torch.device] = None,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Load SHD English spoken-digit sequences as a true train/val/test split.
+
+    Train and validation are disjoint subsets drawn from the official SHD
+    training split. The final test set is drawn from the official SHD test
+    split and should be used only once after model selection.
+
+    Parameters
+    ----------
+    data_root           : directory where tonic will find (or download) SHD
+    task                : "7_vs_rest" | "0_vs_1" | "0_vs_8" | "10class"
+    time_window         : frame duration in µs (ToFrame time_window parameter).
+                          Samples have variable T; each split is zero-padded to
+                          the longest sequence in that split.
+    n_train_per_class   : samples per English class from train split for training
+    n_val_per_class     : samples per English class from train split for validation
+                          (disjoint from training samples)
+    n_test_per_class    : samples per English class from test split  (None = all)
+    seed                : RNG seed for reproducible subsampling
+    device              : torch device for output tensors (default cpu)
+
+    Returns
+    -------
+    X_train : [N_train, T_train, 700] long
+    y_train : [N_train] long
+    X_val   : [N_val,   T_val,   700] long
+    y_val   : [N_val]   long
+    X_test  : [N_test,  T_test,  700] long
+    y_test  : [N_test]  long
+    """
+    dev = device or torch.device("cpu")
+    rng = np.random.default_rng(seed)
+    n_classes_for_task(task)   # validate early
+
+    transform = _make_shd_transform(time_window)
+    print(f"Loading SHD English digits [{task}]  time_window={time_window}µs  input=700")
+
+    train_dataset   = tonic.datasets.SHD(save_to=data_root, train=True,  transform=transform)
+    train_class_idx = _build_shd_class_index(train_dataset)
+    english_ids     = _shd_english_digit_ids(train_dataset)
+
+    train_chosen, val_chosen = _choose_shd_train_val_examples(
+        train_class_idx, english_ids, task, n_train_per_class, n_val_per_class, rng
+    )
+
+    test_dataset     = tonic.datasets.SHD(save_to=data_root, train=False, transform=transform)
+    test_class_idx   = _build_shd_class_index(test_dataset)
+    test_english_ids = _shd_english_digit_ids(test_dataset)
+    test_chosen = _choose_shd_examples(
+        test_class_idx, test_english_ids, task, n_test_per_class, rng
+    )
+
+    X_tr, y_tr = _load_shd_samples(train_dataset, train_chosen)
+    X_va, y_va = _load_shd_samples(train_dataset, val_chosen)
+    X_te, y_te = _load_shd_samples(test_dataset,  test_chosen)
+
+    print(f"  train: {X_tr.shape}  val: {X_va.shape}  test: {X_te.shape}")
+
+    return (
+        torch.from_numpy(X_tr).long().to(dev),
+        torch.from_numpy(y_tr).long().to(dev),
+        torch.from_numpy(X_va).long().to(dev),
+        torch.from_numpy(y_va).long().to(dev),
+        torch.from_numpy(X_te).long().to(dev),
+        torch.from_numpy(y_te).long().to(dev),
     )

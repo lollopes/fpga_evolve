@@ -1,0 +1,22 @@
+{
+    "project": "eio-neat-nmnist-10class",
+    "method": "bayes",
+    "metric": {"name": "val_acc", "goal": "maximize"},
+    "generations": 100,
+    "count": 50,
+    "early_terminate": {
+        "type": "hyperband",
+        "min_iter": 25,
+        "eta": 2
+    },
+    "parameters": {
+        "k": {"values": [2, 3, 4, 5]},
+        "lut_bit_rate": {"distribution": "log_uniform_values", "min": 0.01, "max": 0.20},
+        "p_add_node": {"distribution": "uniform", "min": 0.05, "max": 0.40},
+        "p_add_connection": {"distribution": "uniform", "min": 0.10, "max": 0.50},
+        "p_crossover": {"distribution": "uniform", "min": 0.20, "max": 0.75},
+        "compatibility_threshold": {"distribution": "log_uniform_values", "min": 0.5, "max": 4.0},
+        "tournament_k": {"values": [2, 3, 5, 6, 8]},
+        "initial_connections_per_output": {"values": [10, 20, 35, 50]}
+    }
+}

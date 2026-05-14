@@ -7,10 +7,7 @@ __pycache__/
 datasets/
 
 # Experiment outputs (saved per-run, not versioned)
-experiments/**/result.json
-experiments/**/genome.json
-experiments/**/checkpoint.pt
-experiments/nmnist/results/
+experiments/**/results/
 
 # Logs
 *.log
@@ -22,3 +19,7 @@ experiments/nmnist/results/
 .vscode/
 .idea/
 .DS_Store
+
+logs/
+scripts/
+wandb/

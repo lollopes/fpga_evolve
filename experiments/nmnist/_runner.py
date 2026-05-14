@@ -34,7 +34,8 @@ def accuracy(net: EIONetwork, X: torch.Tensor, y: torch.Tensor,
     return correct / max(1, n)
 
 
-def run_experiment(config: dict, device: torch.device, exp_dir: Path) -> dict:
+def run_experiment(config: dict, device: torch.device, exp_dir: Path,
+                   on_generation=None) -> dict:
     task    = config["task"]
     neat_kw = config["neat"]
     ds_kw   = config["dataset"]
@@ -46,8 +47,7 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path) -> dict:
 
     X_train, y_train, X_val, y_val, X_test, y_test = load_nmnist_train_val_test(
         task=task,
-        n_time_bins=ds_kw["n_time_bins"],
-        grid_size=ds_kw["grid_size"],
+        time_window=ds_kw["time_window"],
         data_root=DATA_ROOT,
         seed=neat_kw["seed"],
         device=torch.device("cpu"),
@@ -68,6 +68,7 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path) -> dict:
         n_outputs=n_outputs,
         config=neat_config,
         device=device,
+        on_generation=on_generation,
     )
     elapsed = time.time() - t0
 
@@ -93,12 +94,13 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path) -> dict:
         config=config,
     )
 
-    exp_dir.mkdir(parents=True, exist_ok=True)
-    with open(exp_dir / "result.json", "w") as f:
+    out_dir = exp_dir / "results"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / "result.json", "w") as f:
         json.dump(result, f, indent=2)
-    with open(exp_dir / "genome.json", "w") as f:
+    with open(out_dir / "genome.json", "w") as f:
         json.dump(best.to_dict(), f, indent=2)
-    torch.save(result, exp_dir / "checkpoint.pt")
-    print(f"  saved → {exp_dir}")
+    torch.save(result, out_dir / "checkpoint.pt")
+    print(f"  saved → {out_dir}")
 
     return result
