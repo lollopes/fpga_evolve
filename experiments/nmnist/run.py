@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT))
 from dataset import load_nmnist_train_val_test, n_classes_for_task  # noqa: E402
 from eio_neat import NEATConfig, evolve, EIONetwork               # noqa: E402
 
-DATA_ROOT = "/home/lorenzo/Desktop/PhD/Projects/Mine/Various/sigprop_snn/data/"
+DATA_ROOT = str(Path(__file__).resolve().parents[2] / "datasets")
 RESULTS_DIR = Path(__file__).parent / "results"
 
 # ---------------------------------------------------------------------------
@@ -54,9 +54,6 @@ EXPERIMENTS = {
         max_stale=15,
         elite_min_size=5,
         batch_size=128,
-        w_silent=0.20,
-        w_activity=0.02,
-        w_complexity=0.0002,
         fitness_sample=0,
         seed=42,
     ),
@@ -81,9 +78,6 @@ EXPERIMENTS = {
         max_stale=15,
         elite_min_size=5,
         batch_size=128,
-        w_silent=0.20,
-        w_activity=0.0,
-        w_complexity=0.0001,
         fitness_sample=512,
         seed=42,
     ),
@@ -108,9 +102,6 @@ EXPERIMENTS = {
         max_stale=20,
         elite_min_size=5,
         batch_size=128,
-        w_silent=0.20,
-        w_activity=0.02,
-        w_complexity=0.0001,
         fitness_sample=0,
         seed=42,
     ),

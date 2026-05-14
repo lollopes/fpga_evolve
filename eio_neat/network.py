@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple, Optional
 import torch
+import torch.nn.functional as F
 
 from .genome import Genome
 
@@ -174,21 +175,18 @@ class EIONetwork:
         if N == 0 or len(self.output_index) == 0:
             return (
                 torch.zeros(B, self.genome.n_outputs, device=self.device),
-                {"mean_activity": 0.0, "silent_frac": 1.0},
+                {"silent_frac": 1.0},
             )
 
         output_counts = torch.zeros(B, len(self.output_index), dtype=torch.float32, device=self.device)
-        total_activity = 0.0
         state = torch.zeros(B, N, dtype=torch.bool, device=self.device)
 
         for t in range(T):
             state = self._step(X[:, t, :], state, B, N)
             output_counts.add_(state[:, self._out_t].float())
-            total_activity += state.float().mean().item()
 
         silent_frac = float((output_counts.sum(dim=1) == 0).float().mean().item())
-        mean_activity = total_activity / max(1, T)
-        return output_counts, {"mean_activity": mean_activity, "silent_frac": silent_frac}
+        return output_counts, {"silent_frac": silent_frac}
 
     def predict(self, X: torch.Tensor) -> torch.Tensor:
         logits, _ = self.forward_counts(X)
@@ -207,20 +205,15 @@ def evaluate_genome(
     y: torch.Tensor,
     device: torch.device | None = None,
     batch_size: int = 64,
-    w_silent: float = 0.20,
-    w_activity: float = 0.02,
-    w_complexity: float = 0.0005,
 ) -> Tuple[float, Dict[str, float]]:
-    """
-    Fitness = accuracy - silence_penalty - activity_penalty - complexity_penalty.
-    """
+    """Fitness = -mean CE loss."""
     dev = device or torch.device("cpu")
     net = EIONetwork(genome, dev)
 
     n = X.shape[0]
     correct = 0
     silent_sum = 0.0
-    activity_sum = 0.0
+    ce_sum = 0.0
 
     for start in range(0, n, batch_size):
         xb = X[start:start + batch_size].to(dev)
@@ -231,27 +224,24 @@ def evaluate_genome(
         pred = logits.argmax(dim=1)
         silent = logits.sum(dim=1) == 0
         correct += int(((pred == yb) & ~silent).sum().detach().cpu())
-
         silent_sum += stats["silent_frac"] * b
-        activity_sum += stats["mean_activity"] * b
+        ce_sum += F.cross_entropy(logits, yb).item() * b
 
     acc = correct / max(1, n)
     silent_frac = silent_sum / max(1, n)
-    mean_activity = activity_sum / max(1, n)
+    mean_ce = ce_sum / max(1, n)
+    fitness = -mean_ce
 
     enabled_e = sum(1 for nd in genome.nodes.values() if nd.kind == "E" and nd.enabled)
     enabled_i = sum(1 for nd in genome.nodes.values() if nd.kind == "I" and nd.enabled)
     enabled_data = sum(1 for c in genome.connections.values() if c.enabled and c.dst_port >= 0)
     enabled_inh = sum(1 for c in genome.connections.values() if c.enabled and c.dst_port < 0)
-    complexity = enabled_data + enabled_inh + enabled_e + enabled_i
-
-    fitness = acc - w_silent * silent_frac - w_activity * mean_activity - w_complexity * complexity
 
     metrics = {
         "acc": float(acc),
         "fitness": float(fitness),
+        "ce": float(mean_ce),
         "silent_frac": float(silent_frac),
-        "mean_activity": float(mean_activity),
         "enabled_e": float(enabled_e),
         "enabled_i": float(enabled_i),
         "enabled_data_conns": float(enabled_data),

@@ -39,9 +39,6 @@ class NEATConfig:
     c_type: float = 0.2
 
     batch_size: int = 64
-    w_silent: float = 0.20
-    w_activity: float = 0.02
-    w_complexity: float = 0.0005
 
     max_stale: int = 15
     fitness_sample: int = 0  # 0 = full X_train; >0 = random subsample per generation
@@ -260,9 +257,6 @@ def evolve(
                 g, X_fit, y_fit,
                 device=dev,
                 batch_size=config.batch_size,
-                w_silent=config.w_silent,
-                w_activity=config.w_activity,
-                w_complexity=config.w_complexity,
             )
             g.fitness = f
             g.metrics = m
@@ -277,9 +271,6 @@ def evolve(
             population[0], X_val, y_val,
             device=dev,
             batch_size=config.batch_size,
-            w_silent=config.w_silent,
-            w_activity=config.w_activity,
-            w_complexity=config.w_complexity,
         )
         val_acc = float(val_m.get("acc", 0.0))
         if (
@@ -297,6 +288,7 @@ def evolve(
         rec = {
             "generation": gen,
             "best_fitness": float(population[0].fitness or 0.0),
+            "best_ce": float(m0.get("ce", 0.0)),
             "best_train_acc": float(m0.get("acc", 0.0)),
             "best_val_acc": val_acc,
             "mean_fitness": float(np.mean([g.fitness or 0.0 for g in population])),
@@ -313,7 +305,7 @@ def evolve(
             print(
                 f"gen {gen:4d} | "
                 f"train={rec['best_train_acc']:.1%}  val={rec['best_val_acc']:.1%} "
-                f"fit={rec['best_fitness']:.3f}  mean={rec['mean_fitness']:.3f} | "
+                f"ce={rec['best_ce']:.3f}  fit={rec['best_fitness']:.3f}  mean={rec['mean_fitness']:.3f} | "
                 f"species={rec['n_species']}  "
                 f"E={rec['best_hidden_E']}  I={rec['best_hidden_I']}  "
                 f"conn={rec['best_connections']}  "
