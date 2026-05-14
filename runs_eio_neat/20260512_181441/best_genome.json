@@ -1,0 +1,1108 @@
+{
+  "k": 3,
+  "input_size": 64,
+  "n_outputs": 2,
+  "output_ids": [
+    64,
+    65
+  ],
+  "nodes": {
+    "0": {
+      "id": 0,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "1": {
+      "id": 1,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "2": {
+      "id": 2,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "3": {
+      "id": 3,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "4": {
+      "id": 4,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "5": {
+      "id": 5,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "6": {
+      "id": 6,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "7": {
+      "id": 7,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "8": {
+      "id": 8,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "9": {
+      "id": 9,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "10": {
+      "id": 10,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "11": {
+      "id": 11,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "12": {
+      "id": 12,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "13": {
+      "id": 13,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "14": {
+      "id": 14,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "15": {
+      "id": 15,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "16": {
+      "id": 16,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "17": {
+      "id": 17,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "18": {
+      "id": 18,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "19": {
+      "id": 19,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "20": {
+      "id": 20,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "21": {
+      "id": 21,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "22": {
+      "id": 22,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "23": {
+      "id": 23,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "24": {
+      "id": 24,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "25": {
+      "id": 25,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "26": {
+      "id": 26,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "27": {
+      "id": 27,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "28": {
+      "id": 28,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "29": {
+      "id": 29,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "30": {
+      "id": 30,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "31": {
+      "id": 31,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "32": {
+      "id": 32,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "33": {
+      "id": 33,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "34": {
+      "id": 34,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "35": {
+      "id": 35,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "36": {
+      "id": 36,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "37": {
+      "id": 37,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "38": {
+      "id": 38,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "39": {
+      "id": 39,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "40": {
+      "id": 40,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "41": {
+      "id": 41,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "42": {
+      "id": 42,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "43": {
+      "id": 43,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "44": {
+      "id": 44,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "45": {
+      "id": 45,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "46": {
+      "id": 46,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "47": {
+      "id": 47,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "48": {
+      "id": 48,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "49": {
+      "id": 49,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "50": {
+      "id": 50,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "51": {
+      "id": 51,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "52": {
+      "id": 52,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "53": {
+      "id": 53,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "54": {
+      "id": 54,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "55": {
+      "id": 55,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "56": {
+      "id": 56,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "57": {
+      "id": 57,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "58": {
+      "id": 58,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "59": {
+      "id": 59,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "60": {
+      "id": 60,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "61": {
+      "id": 61,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "62": {
+      "id": 62,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "63": {
+      "id": 63,
+      "kind": "input",
+      "enabled": true,
+      "lut_E": null,
+      "lut_I": null,
+      "lut_O": null,
+      "output_class": null
+    },
+    "64": {
+      "id": 64,
+      "kind": "output",
+      "enabled": true,
+      "lut_E": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "lut_I": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0
+      ],
+      "lut_O": [
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "output_class": 0
+    },
+    "65": {
+      "id": 65,
+      "kind": "output",
+      "enabled": true,
+      "lut_E": [
+        1,
+        0,
+        1,
+        0,
+        1,
+        1,
+        1,
+        0
+      ],
+      "lut_I": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0
+      ],
+      "lut_O": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        1,
+        1,
+        0
+      ],
+      "output_class": 1
+    },
+    "76": {
+      "id": 76,
+      "kind": "hidden",
+      "enabled": true,
+      "lut_E": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "lut_I": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "lut_O": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "output_class": null
+    },
+    "95": {
+      "id": 95,
+      "kind": "hidden",
+      "enabled": true,
+      "lut_E": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      "lut_I": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "lut_O": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "output_class": null
+    },
+    "123": {
+      "id": 123,
+      "kind": "hidden",
+      "enabled": true,
+      "lut_E": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "lut_I": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "lut_O": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1
+      ],
+      "output_class": null
+    }
+  },
+  "connections": {
+    "512": {
+      "innovation": 512,
+      "src": 44,
+      "dst": 64,
+      "unit": "I",
+      "port": 1,
+      "enabled": true
+    },
+    "1025": {
+      "innovation": 1025,
+      "src": 37,
+      "dst": 95,
+      "unit": "I",
+      "port": 2,
+      "enabled": true
+    },
+    "13": {
+      "innovation": 13,
+      "src": 14,
+      "dst": 64,
+      "unit": "E",
+      "port": 2,
+      "enabled": true
+    },
+    "22": {
+      "innovation": 22,
+      "src": 1,
+      "dst": 64,
+      "unit": "E",
+      "port": 0,
+      "enabled": true
+    },
+    "25": {
+      "innovation": 25,
+      "src": 12,
+      "dst": 64,
+      "unit": "O",
+      "port": 1,
+      "enabled": true
+    },
+    "1049": {
+      "innovation": 1049,
+      "src": 4,
+      "dst": 95,
+      "unit": "O",
+      "port": 1,
+      "enabled": true
+    },
+    "287": {
+      "innovation": 287,
+      "src": 22,
+      "dst": 65,
+      "unit": "E",
+      "port": 1,
+      "enabled": false
+    },
+    "1313": {
+      "innovation": 1313,
+      "src": 5,
+      "dst": 76,
+      "unit": "I",
+      "port": 0,
+      "enabled": true
+    },
+    "810": {
+      "innovation": 810,
+      "src": 10,
+      "dst": 65,
+      "unit": "I",
+      "port": 0,
+      "enabled": true
+    },
+    "51": {
+      "innovation": 51,
+      "src": 27,
+      "dst": 65,
+      "unit": "E",
+      "port": 0,
+      "enabled": true
+    },
+    "570": {
+      "innovation": 570,
+      "src": 21,
+      "dst": 64,
+      "unit": "I",
+      "port": 0,
+      "enabled": true
+    },
+    "1343": {
+      "innovation": 1343,
+      "src": 49,
+      "dst": 65,
+      "unit": "I",
+      "port": 1,
+      "enabled": true
+    },
+    "63": {
+      "innovation": 63,
+      "src": 1,
+      "dst": 65,
+      "unit": "E",
+      "port": 0,
+      "enabled": false
+    },
+    "836": {
+      "innovation": 836,
+      "src": 56,
+      "dst": 65,
+      "unit": "O",
+      "port": 2,
+      "enabled": true
+    },
+    "1379": {
+      "innovation": 1379,
+      "src": 1,
+      "dst": 76,
+      "unit": "O",
+      "port": 1,
+      "enabled": true
+    },
+    "101": {
+      "innovation": 101,
+      "src": 11,
+      "dst": 64,
+      "unit": "E",
+      "port": 1,
+      "enabled": false
+    },
+    "104": {
+      "innovation": 104,
+      "src": 47,
+      "dst": 65,
+      "unit": "E",
+      "port": 1,
+      "enabled": false
+    },
+    "111": {
+      "innovation": 111,
+      "src": 39,
+      "dst": 64,
+      "unit": "E",
+      "port": 0,
+      "enabled": false
+    },
+    "1391": {
+      "innovation": 1391,
+      "src": 19,
+      "dst": 76,
+      "unit": "E",
+      "port": 1,
+      "enabled": true
+    },
+    "1141": {
+      "innovation": 1141,
+      "src": 61,
+      "dst": 95,
+      "unit": "I",
+      "port": 0,
+      "enabled": true
+    },
+    "1151": {
+      "innovation": 1151,
+      "src": 56,
+      "dst": 95,
+      "unit": "I",
+      "port": 1,
+      "enabled": false
+    },
+    "897": {
+      "innovation": 897,
+      "src": 18,
+      "dst": 65,
+      "unit": "I",
+      "port": 2,
+      "enabled": false
+    },
+    "1160": {
+      "innovation": 1160,
+      "src": 23,
+      "dst": 95,
+      "unit": "E",
+      "port": 1,
+      "enabled": true
+    },
+    "139": {
+      "innovation": 139,
+      "src": 9,
+      "dst": 64,
+      "unit": "E",
+      "port": 1,
+      "enabled": true
+    },
+    "143": {
+      "innovation": 143,
+      "src": 59,
+      "dst": 64,
+      "unit": "I",
+      "port": 2,
+      "enabled": true
+    },
+    "431": {
+      "innovation": 431,
+      "src": 48,
+      "dst": 64,
+      "unit": "O",
+      "port": 2,
+      "enabled": true
+    },
+    "1721": {
+      "innovation": 1721,
+      "src": 45,
+      "dst": 76,
+      "unit": "I",
+      "port": 1,
+      "enabled": true
+    },
+    "1722": {
+      "innovation": 1722,
+      "src": 95,
+      "dst": 123,
+      "unit": "E",
+      "port": 0,
+      "enabled": true
+    },
+    "1723": {
+      "innovation": 1723,
+      "src": 123,
+      "dst": 65,
+      "unit": "E",
+      "port": 1,
+      "enabled": true
+    },
+    "970": {
+      "innovation": 970,
+      "src": 22,
+      "dst": 95,
+      "unit": "E",
+      "port": 0,
+      "enabled": false
+    },
+    "971": {
+      "innovation": 971,
+      "src": 95,
+      "dst": 65,
+      "unit": "E",
+      "port": 1,
+      "enabled": false
+    },
+    "460": {
+      "innovation": 460,
+      "src": 41,
+      "dst": 65,
+      "unit": "I",
+      "port": 2,
+      "enabled": true
+    },
+    "1484": {
+      "innovation": 1484,
+      "src": 2,
+      "dst": 95,
+      "unit": "E",
+      "port": 0,
+      "enabled": true
+    },
+    "462": {
+      "innovation": 462,
+      "src": 17,
+      "dst": 65,
+      "unit": "O",
+      "port": 1,
+      "enabled": true
+    },
+    "214": {
+      "innovation": 214,
+      "src": 41,
+      "dst": 64,
+      "unit": "E",
+      "port": 2,
+      "enabled": false
+    },
+    "215": {
+      "innovation": 215,
+      "src": 25,
+      "dst": 65,
+      "unit": "E",
+      "port": 2,
+      "enabled": false
+    },
+    "216": {
+      "innovation": 216,
+      "src": 41,
+      "dst": 65,
+      "unit": "I",
+      "port": 1,
+      "enabled": false
+    },
+    "983": {
+      "innovation": 983,
+      "src": 21,
+      "dst": 95,
+      "unit": "O",
+      "port": 2,
+      "enabled": true
+    },
+    "497": {
+      "innovation": 497,
+      "src": 25,
+      "dst": 76,
+      "unit": "E",
+      "port": 0,
+      "enabled": true
+    },
+    "498": {
+      "innovation": 498,
+      "src": 76,
+      "dst": 65,
+      "unit": "E",
+      "port": 2,
+      "enabled": true
+    },
+    "1021": {
+      "innovation": 1021,
+      "src": 43,
+      "dst": 95,
+      "unit": "E",
+      "port": 2,
+      "enabled": false
+    }
+  },
+  "fitness": 0.6929799999147652,
+  "metrics": {
+    "acc": 0.8875,
+    "fitness": 0.8853599999859929,
+    "silent_frac": 0.0,
+    "mean_activity": 0.10700000070035458,
+    "enabled_connections": 28.0,
+    "enabled_hidden": 3.0,
+    "val_acc": 0.7,
+    "val_fitness": 0.6929799999147652
+  }
+}

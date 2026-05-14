@@ -1,0 +1,578 @@
+{
+  "k": 3,
+  "input_size": 64,
+  "n_outputs": 2,
+  "output_ids": [
+    64,
+    65
+  ],
+  "nodes": {
+    "0": {
+      "id": 0,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "1": {
+      "id": 1,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "2": {
+      "id": 2,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "3": {
+      "id": 3,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "4": {
+      "id": 4,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "5": {
+      "id": 5,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "6": {
+      "id": 6,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "7": {
+      "id": 7,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "8": {
+      "id": 8,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "9": {
+      "id": 9,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "10": {
+      "id": 10,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "11": {
+      "id": 11,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "12": {
+      "id": 12,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "13": {
+      "id": 13,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "14": {
+      "id": 14,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "15": {
+      "id": 15,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "16": {
+      "id": 16,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "17": {
+      "id": 17,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "18": {
+      "id": 18,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "19": {
+      "id": 19,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "20": {
+      "id": 20,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "21": {
+      "id": 21,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "22": {
+      "id": 22,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "23": {
+      "id": 23,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "24": {
+      "id": 24,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "25": {
+      "id": 25,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "26": {
+      "id": 26,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "27": {
+      "id": 27,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "28": {
+      "id": 28,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "29": {
+      "id": 29,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "30": {
+      "id": 30,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "31": {
+      "id": 31,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "32": {
+      "id": 32,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "33": {
+      "id": 33,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "34": {
+      "id": 34,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "35": {
+      "id": 35,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "36": {
+      "id": 36,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "37": {
+      "id": 37,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "38": {
+      "id": 38,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "39": {
+      "id": 39,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "40": {
+      "id": 40,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "41": {
+      "id": 41,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "42": {
+      "id": 42,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "43": {
+      "id": 43,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "44": {
+      "id": 44,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "45": {
+      "id": 45,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "46": {
+      "id": 46,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "47": {
+      "id": 47,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "48": {
+      "id": 48,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "49": {
+      "id": 49,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "50": {
+      "id": 50,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "51": {
+      "id": 51,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "52": {
+      "id": 52,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "53": {
+      "id": 53,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "54": {
+      "id": 54,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "55": {
+      "id": 55,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "56": {
+      "id": 56,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "57": {
+      "id": 57,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "58": {
+      "id": 58,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "59": {
+      "id": 59,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "60": {
+      "id": 60,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "61": {
+      "id": 61,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "62": {
+      "id": 62,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "63": {
+      "id": 63,
+      "kind": "input",
+      "enabled": true,
+      "lut": null,
+      "output_class": null
+    },
+    "64": {
+      "id": 64,
+      "kind": "O",
+      "enabled": true,
+      "lut": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "output_class": 0
+    },
+    "65": {
+      "id": 65,
+      "kind": "O",
+      "enabled": true,
+      "lut": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      "output_class": 1
+    },
+    "68": {
+      "id": 68,
+      "kind": "I",
+      "enabled": true,
+      "lut": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "output_class": null
+    }
+  },
+  "connections": {
+    "38": {
+      "innovation": 38,
+      "src": 19,
+      "dst": 64,
+      "dst_port": 0,
+      "enabled": true
+    },
+    "39": {
+      "innovation": 39,
+      "src": 55,
+      "dst": 64,
+      "dst_port": 1,
+      "enabled": true
+    },
+    "40": {
+      "innovation": 40,
+      "src": 22,
+      "dst": 64,
+      "dst_port": 2,
+      "enabled": true
+    },
+    "41": {
+      "innovation": 41,
+      "src": 61,
+      "dst": 65,
+      "dst_port": 0,
+      "enabled": false
+    },
+    "42": {
+      "innovation": 42,
+      "src": 59,
+      "dst": 65,
+      "dst_port": 1,
+      "enabled": true
+    },
+    "26": {
+      "innovation": 26,
+      "src": 55,
+      "dst": 65,
+      "dst_port": 2,
+      "enabled": false
+    },
+    "213": {
+      "innovation": 213,
+      "src": 61,
+      "dst": 68,
+      "dst_port": 0,
+      "enabled": true
+    },
+    "214": {
+      "innovation": 214,
+      "src": 68,
+      "dst": 65,
+      "dst_port": -1,
+      "enabled": true
+    }
+  },
+  "fitness": 0.613183333426714,
+  "metrics": {
+    "acc": 0.75,
+    "fitness": 0.7377333333134651,
+    "silent_frac": 0.0,
+    "mean_activity": 0.43833333432674404,
+    "enabled_e": 0.0,
+    "enabled_i": 1.0,
+    "enabled_data_conns": 5.0,
+    "enabled_inh_conns": 1.0,
+    "val_acc": 0.625,
+    "val_fitness": 0.613183333426714
+  }
+}
