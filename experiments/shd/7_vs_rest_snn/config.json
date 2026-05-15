@@ -1,0 +1,28 @@
+{
+    "task": "7_vs_rest",
+    "dataset": {
+        "time_window": 10000,
+        "n_train_per_class": 200,
+        "n_val_per_class": 50,
+        "n_test_per_class": null
+    },
+    "model": {
+        "hidden_layers": [450]
+    },
+    "snn_params": {
+        "l_vth": 1.0,
+        "l_leak_m": 0.9,
+        "l_leak_t": 0.9,
+        "l_rec": true,
+        "l_rst_type": "soft",
+        "l_out_leak_m": 0.9,
+        "surrogate_type": "2",
+        "surrogate_scale": 1.0
+    },
+    "training": {
+        "lr": 1e-3,
+        "batch_size": 64,
+        "epochs": 100,
+        "seed": 42
+    }
+}

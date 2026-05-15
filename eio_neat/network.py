@@ -130,6 +130,14 @@ class EIONetwork:
         self._n_idx = torch.arange(N, dtype=torch.long, device=dev).unsqueeze(0)
         self._out_t = torch.tensor(self.output_index, dtype=torch.long, device=dev)
 
+        # Counter / integrate-and-fire support
+        self.counter_bits: int = genome.counter_bits
+        if self.counter_bits > 0:
+            thresholds = [genome.nodes[nid].threshold for nid in self.active_ids]
+            self._thresholds = torch.tensor(
+                thresholds, dtype=torch.int16, device=dev
+            ).unsqueeze(0)  # [1, N]
+
     # ------------------------------------------------------------------
     # Forward pass
     # ------------------------------------------------------------------
@@ -179,11 +187,22 @@ class EIONetwork:
             )
 
         output_counts = torch.zeros(B, len(self.output_index), dtype=torch.float32, device=self.device)
-        state = torch.zeros(B, N, dtype=torch.bool, device=self.device)
 
-        for t in range(T):
-            state = self._step(X[:, t, :], state, B, N)
-            output_counts.add_(state[:, self._out_t].float())
+        if self.counter_bits > 0:
+            state = torch.zeros(B, N, dtype=torch.bool, device=self.device)
+            counter = torch.zeros(B, N, dtype=torch.int16, device=self.device)
+            for t in range(T):
+                lut_out = self._step(X[:, t, :], state, B, N)   # [B, N] bool, inhibition applied
+                counter = counter + lut_out.to(torch.int16)
+                fired = counter >= self._thresholds              # [B, N] bool
+                counter = counter * (~fired).to(torch.int16)     # reset fired counters
+                state = fired
+                output_counts.add_(state[:, self._out_t].float())
+        else:
+            state = torch.zeros(B, N, dtype=torch.bool, device=self.device)
+            for t in range(T):
+                state = self._step(X[:, t, :], state, B, N)
+                output_counts.add_(state[:, self._out_t].float())
 
         silent_frac = float((output_counts.sum(dim=1) == 0).float().mean().item())
         return output_counts, {"silent_frac": silent_frac}
