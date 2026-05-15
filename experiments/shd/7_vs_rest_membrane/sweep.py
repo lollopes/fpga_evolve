@@ -9,8 +9,8 @@ from _sweep import run_sweep
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--sweep-id", default=None, help="Attach to existing sweep instead of creating one")
-    p.add_argument("--create-only", action="store_true", help="Register sweep on wandb and print ID, then exit")
+    p.add_argument("--sweep-id", default=None)
+    p.add_argument("--create-only", action="store_true")
     args = p.parse_args()
 
     exp_dir     = Path(__file__).parent

@@ -93,8 +93,7 @@ class NEATConfig:
     max_stale: int = 15
     fitness_sample: int = 0  # 0 = full X_train; >0 = random subsample per generation
 
-    counter_bits: int = 0       # 0 = legacy 1-bit register; >0 = integrate-and-fire counter
-    p_mutate_threshold: float = 0.1  # per-node probability of nudging threshold (only if counter_bits > 0)
+    membrane_bits: int = 0       # 0 = legacy; >0 = full (k+mb):(1+mb) LIF-equivalent LUT
 
     n_workers: int = 1   # parallel genome evaluation workers (Linux fork only)
     seed: int = 42
@@ -124,7 +123,7 @@ def _make_initial_population(
         rng=rng,
         initial_connections_per_output=config.initial_connections_per_output,
         initial_e_nodes=config.initial_e_nodes,
-        counter_bits=config.counter_bits,
+        membrane_bits=config.membrane_bits,
     )
     pop = []
     for _ in range(config.pop_size):
@@ -178,7 +177,6 @@ def _mutate_child(child: Genome, registry: InnovationRegistry, rng: random.Rando
         p_new_node_is_inhibitory=config.p_new_node_is_inhibitory,
         p_mutate_node_type=config.p_mutate_node_type,
         allow_output_feedback=config.allow_output_feedback,
-        p_mutate_threshold=config.p_mutate_threshold,
     )
 
 

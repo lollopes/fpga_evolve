@@ -117,35 +117,59 @@ class EIONetwork:
 
         self._has_inhibition = self._inh_n is not None
 
-        self._lut_table = torch.tensor(
-            [(genome.nodes[nid].lut or [0] * (2 ** k)) for nid in self.active_ids],
-            dtype=torch.bool, device=dev,
-        )  # [N, 2^k]
+        # Membrane-bit LIF support
+        self.membrane_bits: int = genome.membrane_bits
+        mb = self.membrane_bits
+        lut_size = 2 ** (k + mb)
 
+        self._lut_spike = torch.tensor(
+            [(genome.nodes[nid].lut or [0] * lut_size)[:lut_size] for nid in self.active_ids],
+            dtype=torch.bool, device=dev,
+        )  # [N, 2^(k+mb)]
+
+        if mb > 0:
+            self._lut_mem = torch.tensor(
+                [(genome.nodes[nid].lut_mem or [0] * lut_size)[:lut_size] for nid in self.active_ids],
+                dtype=torch.int16, device=dev,
+            )  # [N, 2^(k+mb)]
+
+        total_inputs = k + mb
         self._addr_weights = torch.tensor(
-            [1 << (k - 1 - j) for j in range(k)],
+            [1 << (total_inputs - 1 - j) for j in range(total_inputs)],
             dtype=torch.long, device=dev,
-        )  # [k]
+        )  # [k + mb]
 
         self._n_idx = torch.arange(N, dtype=torch.long, device=dev).unsqueeze(0)
         self._out_t = torch.tensor(self.output_index, dtype=torch.long, device=dev)
 
-        # Counter / integrate-and-fire support
-        self.counter_bits: int = genome.counter_bits
-        if self.counter_bits > 0:
-            thresholds = [genome.nodes[nid].threshold for nid in self.active_ids]
-            self._thresholds = torch.tensor(
-                thresholds, dtype=torch.int16, device=dev
-            ).unsqueeze(0)  # [1, N]
+        # Precomputed bit-shift vector for membrane unpacking [mb]
+        if mb > 0:
+            self._mem_shifts = torch.arange(mb, dtype=torch.int16, device=dev)
+
 
     # ------------------------------------------------------------------
     # Forward pass
     # ------------------------------------------------------------------
 
-    def _step(self, x_t: torch.Tensor, prev_state: torch.Tensor, B: int, N: int) -> torch.Tensor:
-        """One timestep: compute state[t] from x_t and state[t-1]."""
+    def _step(
+        self,
+        x_t: torch.Tensor,
+        prev_state: torch.Tensor,
+        B: int,
+        N: int,
+        prev_membrane: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """
+        One timestep: compute state[t] from x_t and state[t-1].
+
+        When membrane_bits > 0, prev_membrane [B, N] int16 is appended as the
+        last mb input bits, and the second return value is the new membrane [B, N] int16.
+        Otherwise the second return value is None.
+        """
         k = self.k
-        data_in = torch.zeros(B, N, k, dtype=torch.bool, device=self.device)
+        mb = self.membrane_bits
+        total = k + mb
+        data_in = torch.zeros(B, N, total, dtype=torch.bool, device=self.device)
 
         if self._inp_n is not None:
             data_in[:, self._inp_n, self._inp_p] = x_t[:, self._inp_f]
@@ -153,12 +177,15 @@ class EIONetwork:
         if self._node_n is not None:
             data_in[:, self._node_n, self._node_p] = prev_state[:, self._node_s]
 
-        addr = torch.einsum("bnk,k->bn", data_in.to(torch.long), self._addr_weights)
+        if mb > 0 and prev_membrane is not None:
+            # Vectorised: unpack mb bits in one operation instead of a Python loop
+            data_in[:, :, k:] = ((prev_membrane.unsqueeze(-1) >> self._mem_shifts) & 1).bool()
+
+        addr = torch.einsum("bnj,j->bn", data_in.to(torch.long), self._addr_weights)
         n_idx = self._n_idx.expand(B, -1)
-        raw = self._lut_table[n_idx, addr]  # [B, N] bool
+        raw = self._lut_spike[n_idx, addr]  # [B, N] bool
 
         if self._has_inhibition:
-            # OR-reduce: sum inhibitory sources per destination, then threshold at 1.
             inh_sum = torch.zeros(B, N, dtype=torch.float32, device=self.device)
             inh_sum.scatter_add_(
                 1,
@@ -167,7 +194,11 @@ class EIONetwork:
             )
             raw = raw & ~(inh_sum > 0)
 
-        return raw
+        new_membrane = None
+        if mb > 0:
+            new_membrane = self._lut_mem[n_idx, addr]  # [B, N] int16
+
+        return raw, new_membrane
 
     def forward_counts(self, X: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
@@ -188,20 +219,16 @@ class EIONetwork:
 
         output_counts = torch.zeros(B, len(self.output_index), dtype=torch.float32, device=self.device)
 
-        if self.counter_bits > 0:
-            state = torch.zeros(B, N, dtype=torch.bool, device=self.device)
-            counter = torch.zeros(B, N, dtype=torch.int16, device=self.device)
+        if self.membrane_bits > 0:
+            state    = torch.zeros(B, N, dtype=torch.bool,  device=self.device)
+            membrane = torch.zeros(B, N, dtype=torch.int16, device=self.device)
             for t in range(T):
-                lut_out = self._step(X[:, t, :], state, B, N)   # [B, N] bool, inhibition applied
-                counter = counter + lut_out.to(torch.int16)
-                fired = counter >= self._thresholds              # [B, N] bool
-                counter = counter * (~fired).to(torch.int16)     # reset fired counters
-                state = fired
+                state, membrane = self._step(X[:, t, :], state, B, N, membrane)
                 output_counts.add_(state[:, self._out_t].float())
         else:
             state = torch.zeros(B, N, dtype=torch.bool, device=self.device)
             for t in range(T):
-                state = self._step(X[:, t, :], state, B, N)
+                state, _ = self._step(X[:, t, :], state, B, N)
                 output_counts.add_(state[:, self._out_t].float())
 
         silent_frac = float((output_counts.sum(dim=1) == 0).float().mean().item())

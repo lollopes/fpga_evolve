@@ -9,16 +9,23 @@ import numpy as np
 NodeKind = Literal["input", "E", "I", "O"]
 
 
-def lut_or(k: int) -> List[int]:
-    return [1 if i != 0 else 0 for i in range(2 ** k)]
+def lut_or(k: int, membrane_bits: int = 0) -> List[int]:
+    size = 2 ** (k + membrane_bits)
+    return [1 if i != 0 else 0 for i in range(size)]
 
 
-def lut_zero(k: int) -> List[int]:
-    return [0] * (2 ** k)
+def lut_zero(k: int, membrane_bits: int = 0) -> List[int]:
+    return [0] * (2 ** (k + membrane_bits))
 
 
-def random_lut(k: int, rng: random.Random) -> List[int]:
-    return [rng.randint(0, 1) for _ in range(2 ** k)]
+def random_lut(k: int, rng: random.Random, membrane_bits: int = 0) -> List[int]:
+    return [rng.randint(0, 1) for _ in range(2 ** (k + membrane_bits))]
+
+
+def random_lut_mem(k: int, rng: random.Random, membrane_bits: int) -> List[int]:
+    """Random membrane-output LUT: each entry is an integer in [0, 2^membrane_bits - 1]."""
+    max_val = (1 << membrane_bits) - 1
+    return [rng.randint(0, max_val) for _ in range(2 ** (k + membrane_bits))]
 
 
 @dataclass
@@ -26,9 +33,9 @@ class NodeGene:
     id: int
     kind: NodeKind
     enabled: bool = True
-    lut: Optional[List[int]] = None
+    lut: Optional[List[int]] = None          # spike output table, length 2^(k+membrane_bits)
+    lut_mem: Optional[List[int]] = None      # membrane-next-state table, same length; None when membrane_bits==0
     output_class: Optional[int] = None
-    threshold: int = 1  # fire when counter reaches this; 1 = legacy (immediate) behaviour
 
     def is_active(self) -> bool:
         return self.kind in ("E", "I", "O")
@@ -100,7 +107,7 @@ class Genome:
     nodes: Dict[int, NodeGene]
     connections: Dict[int, ConnectionGene]
     output_ids: List[int]
-    counter_bits: int = 0   # 0 = legacy 1-bit register; >0 = integrate-and-fire counter
+    membrane_bits: int = 0   # 0 = legacy; >0 = full (k+mb):(1+mb) LIF-equivalent LUT
     fitness: Optional[float] = None
     metrics: Dict[str, float] = field(default_factory=dict)
 
@@ -118,10 +125,10 @@ class Genome:
         rng: random.Random,
         initial_connections_per_output: Optional[int] = None,
         initial_e_nodes: int = 0,
-        counter_bits: int = 0,
+        membrane_bits: int = 0,
     ) -> "Genome":
         nodes: Dict[int, NodeGene] = {}
-        max_thresh = (1 << counter_bits) - 1 if counter_bits > 0 else 1
+        mb = membrane_bits
 
         for i in range(input_size):
             nodes[i] = NodeGene(id=i, kind="input", enabled=True)
@@ -130,9 +137,12 @@ class Genome:
         for c in range(n_outputs):
             nid = input_size + c
             output_ids.append(nid)
-            thresh = rng.randint(1, max_thresh) if counter_bits > 0 else 1
-            nodes[nid] = NodeGene(id=nid, kind="O", enabled=True, lut=random_lut(k, rng),
-                                  output_class=c, threshold=thresh)
+            nodes[nid] = NodeGene(
+                id=nid, kind="O", enabled=True,
+                lut=random_lut(k, rng, mb),
+                lut_mem=random_lut_mem(k, rng, mb) if mb > 0 else None,
+                output_class=c,
+            )
 
         registry.reserve_node_ids(input_size + n_outputs)
 
@@ -143,7 +153,7 @@ class Genome:
             nodes=nodes,
             connections={},
             output_ids=output_ids,
-            counter_bits=counter_bits,
+            membrane_bits=membrane_bits,
         )
 
         n_conn = initial_connections_per_output
@@ -153,8 +163,11 @@ class Genome:
         e_ids: List[int] = []
         for _ in range(initial_e_nodes):
             nid = registry.new_node_id()
-            thresh = rng.randint(1, max_thresh) if counter_bits > 0 else 1
-            nodes[nid] = NodeGene(id=nid, kind="E", enabled=True, lut=random_lut(k, rng), threshold=thresh)
+            nodes[nid] = NodeGene(
+                id=nid, kind="E", enabled=True,
+                lut=random_lut(k, rng, mb),
+                lut_mem=random_lut_mem(k, rng, mb) if mb > 0 else None,
+            )
             e_ids.append(nid)
 
         output_free: Dict[int, List[int]] = {}
@@ -307,10 +320,12 @@ class Genome:
         new_type: NodeKind = "I" if rng.random() < p_new_node_is_inhibitory else "E"
 
         if new_id not in self.nodes:
-            max_thresh = (1 << self.counter_bits) - 1 if self.counter_bits > 0 else 1
-            thresh = rng.randint(1, max_thresh) if self.counter_bits > 0 else 1
-            self.nodes[new_id] = NodeGene(id=new_id, kind=new_type, enabled=True,
-                                          lut=lut_or(self.k), threshold=thresh)
+            mb = self.membrane_bits
+            self.nodes[new_id] = NodeGene(
+                id=new_id, kind=new_type, enabled=True,
+                lut=lut_or(self.k, mb),
+                lut_mem=random_lut_mem(self.k, rng, mb) if mb > 0 else None,
+            )
         else:
             self.nodes[new_id].enabled = True
 
@@ -331,7 +346,8 @@ class Genome:
     def mutate_luts(self, rng: random.Random, bit_rate: float) -> None:
         if bit_rate <= 0.0:
             return
-        lut_size = 2 ** self.k
+        mb = self.membrane_bits
+        lut_size = 2 ** (self.k + mb)
         per_bit_rate = bit_rate / lut_size
         for node in self.nodes.values():
             if not node.enabled or not node.is_active() or node.lut is None:
@@ -339,17 +355,13 @@ class Genome:
             for i in range(lut_size):
                 if rng.random() < per_bit_rate:
                     node.lut[i] = 1 - node.lut[i]
-
-    def mutate_thresholds(self, rng: random.Random, p: float) -> None:
-        if self.counter_bits <= 0 or p <= 0.0:
-            return
-        max_thresh = (1 << self.counter_bits) - 1
-        for node in self.nodes.values():
-            if not node.enabled or not node.is_active():
-                continue
-            if rng.random() < p:
-                delta = rng.choice([-1, 1])
-                node.threshold = max(1, min(max_thresh, node.threshold + delta))
+            if mb > 0 and node.lut_mem is not None:
+                max_mem = (1 << mb) - 1
+                for i in range(lut_size):
+                    for bit in range(mb):
+                        if rng.random() < per_bit_rate:
+                            node.lut_mem[i] ^= (1 << bit)
+                            node.lut_mem[i] = max(0, min(max_mem, node.lut_mem[i]))
 
     def mutate_node_type(self, rng: random.Random, p: float) -> None:
         if p <= 0.0:
@@ -395,10 +407,8 @@ class Genome:
         p_new_node_is_inhibitory: float = 0.2,
         p_mutate_node_type: float = 0.01,
         allow_output_feedback: bool = False,
-        p_mutate_threshold: float = 0.1,
     ) -> None:
         self.mutate_luts(rng, lut_bit_rate)
-        self.mutate_thresholds(rng, p_mutate_threshold)
         if rng.random() < p_add_connection:
             self.add_connection_mutation(registry, rng, allow_output_feedback=allow_output_feedback)
         if rng.random() < p_add_node:
@@ -418,15 +428,15 @@ class Genome:
             "input_size": self.input_size,
             "n_outputs": self.n_outputs,
             "output_ids": self.output_ids,
-            "counter_bits": self.counter_bits,
+            "membrane_bits": self.membrane_bits,
             "nodes": {
                 str(nid): {
                     "id": n.id,
                     "kind": n.kind,
                     "enabled": n.enabled,
                     "lut": n.lut,
+                    "lut_mem": n.lut_mem,
                     "output_class": n.output_class,
-                    "threshold": n.threshold,
                 }
                 for nid, n in self.nodes.items()
             },
@@ -453,8 +463,8 @@ class Genome:
                 kind=v["kind"],
                 enabled=v.get("enabled", True),
                 lut=v.get("lut"),
+                lut_mem=v.get("lut_mem"),
                 output_class=v.get("output_class"),
-                threshold=v.get("threshold", 1),
             )
         conns: Dict[int, ConnectionGene] = {}
         for k, v in d["connections"].items():
@@ -472,7 +482,7 @@ class Genome:
             nodes=nodes,
             connections=conns,
             output_ids=list(d["output_ids"]),
-            counter_bits=d.get("counter_bits", 0),
+            membrane_bits=d.get("membrane_bits", 0),
             fitness=d.get("fitness"),
             metrics=d.get("metrics", {}),
         )
@@ -547,6 +557,8 @@ def crossover(fitter: Genome, other: Genome, rng: random.Random) -> Genome:
             node = rng.choice([fn, on]).clone()
             if fn.lut and on.lut and len(fn.lut) == len(on.lut):
                 node.lut = [rng.choice([fa, oa]) for fa, oa in zip(fn.lut, on.lut)]
+            if fn.lut_mem and on.lut_mem and len(fn.lut_mem) == len(on.lut_mem):
+                node.lut_mem = [rng.choice([fa, oa]) for fa, oa in zip(fn.lut_mem, on.lut_mem)]
         elif in_fitter:
             node = fitter.nodes[nid].clone()
         elif in_other:

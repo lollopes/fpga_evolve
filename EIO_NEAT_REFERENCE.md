@@ -5,6 +5,8 @@
 ## Table of Contents
 
 1. [Node Architecture — The EIO Building Block](#1-node-architecture--the-eio-building-block)
+   - [1a. Baseline Node (LUT-Register)](#1a-baseline-node-lut-register)
+   - [1b. Membrane Node (LIF-Equivalent)](#1b-membrane-node-lif-equivalent)
 2. [How NEAT Works](#2-how-neat-works)
 3. [Evolution Parameters](#3-evolution-parameters)
 4. [Global Readout Layer (src/)](#4-global-readout-layer-src)
@@ -13,30 +15,131 @@
 
 ## 1. Node Architecture — The EIO Building Block
 
-### The Core Unit: LUT-Register
+Two node variants are supported. Both share the same NEAT topology (E/I/O types, data and inhibitory connections); they differ only in how much internal state each node carries.
 
-Every non-input node in the network is a **LUT-register unit** — a synchronous Boolean cell that:
+---
+
+### 1a. Baseline Node (LUT-Register)
+
+Every non-input node is a **LUT-register unit** — a synchronous Boolean cell with a single bit of internal state:
 
 1. Collects up to `k` binary data inputs (one per LUT input port)
 2. Optionally receives inhibitory signals from I-type nodes
 3. Evaluates a `k`-input Boolean function stored in a Look-Up Table (LUT)
 4. Suppresses its output if any inhibitory source fired in the previous timestep
-5. Holds the resulting binary state until the next timestep (register semantics)
+5. Holds the resulting **1-bit** state until the next timestep
 
-The LUT is a table of `2^k` bits — it maps every possible `k`-bit input combination to a single output bit. Because the entire Boolean function is stored explicitly, any function of `k` inputs is representable (AND, OR, XOR, majority, threshold, etc.). Evolution discovers which function is useful by flipping individual bits.
+The LUT stores `2^k` bits — every possible `k`-bit input combination maps to one output bit. Any Boolean function of `k` inputs is representable. Evolution discovers which function is useful by flipping individual bits.
+
+```
+  k data inputs
+  ─────────────
+  x[0] ─┐
+  x[1] ─┤─► [ LUT  ]──► raw ──► AND NOT inh ──► ┌───┐
+  ...    │   [2^k×1]                               │ D ├──► state[t]
+  x[k-1]┘                                         └─┬─┘
+                                                     │
+  inhibitory sources                                 └──► (fanout to network)
+  ──────────────────
+  s[0] ─┐
+  s[1] ─┴─► OR ──► inh
+```
 
 **Update rule at each timestep `t`:**
 
 ```
-data_inputs[port] = x_t[src]        if src is an input node
-                  = state[t-1][src]  if src is a hidden/output node
+data_inputs[p] = x_t[src]          if src is an input node
+               = state[t-1][src]   if src is a hidden/output node
 
-raw        = LUT[addr(data_inputs)]
-inhibition = OR(state[t-1][s]  for all incoming I-sources s)
+raw        = LUT[ addr(data_inputs) ]
+inhibition = OR( state[t-1][s]  for all incoming I-sources s )
 state[t]   = raw AND NOT inhibition
 ```
 
-All nodes update synchronously. Recurrence is implicit — a node can read the previous state of any other node via a normal data connection.
+All nodes update synchronously. Recurrence is implicit — any node can read the previous state of any other node via a data connection.
+
+**Internal state:** 1 bit per node.  
+**LUT size:** `2^k` entries × 1 bit.
+
+---
+
+### 1b. Membrane Node (LIF-Equivalent)
+
+Enabled by setting `membrane_bits = β > 0` in the config. Each node now carries a **β-bit membrane register** alongside its spike output, making it a fully learned leaky-integrate-and-fire equivalent.
+
+The key insight (from LogicNets): a neuron with X input bits and Y output bits is exactly a `X→Y` truth table. A LIF neuron with `k` spike inputs and a β-bit internal membrane state is therefore a `(k+β) → (1+β)` LUT — learned entirely by evolution, no hand-coded dynamics.
+
+```
+  k data inputs   β membrane bits (previous step)
+  ─────────────   ──────────────────────────────
+  x[0]  ─┐         m[0]  ─┐
+  x[1]  ─┤         m[1]  ─┤
+  ...    ├──────── ...    ─┤──► addr  (k+β bits)
+  x[k-1]─┘         m[β-1]─┘      │
+                                  ├──► [ LUT_spike ]──► AND NOT inh ──► ┌───┐
+                                  │    [2^(k+β)×1 ]                      │ D ├──► spike[t]
+                                  │                                      └───┘
+                                  └──► [ LUT_mem   ]──────────────────► ┌───┐
+                                       [2^(k+β)×β ]                     │ D ├──► mem[t]
+                                                                         └─┬─┘
+                                                                           │
+                                                                           └──► (fed back as m next step)
+```
+
+**Update rule at each timestep `t`:**
+
+```
+inputs = [ data_inputs[0..k-1],  mem[t-1][0..β-1] ]   (k+β bits total)
+addr   = binary_to_int( inputs )
+
+raw    = LUT_spike[ addr ]          (1 bit)
+mem[t] = LUT_mem  [ addr ]          (β-bit integer, range 0 … 2^β−1)
+
+inhibition = OR( state[t-1][s]  for all incoming I-sources s )
+state[t]   = raw AND NOT inhibition
+```
+
+#### How integration actually works
+
+The β-bit membrane is a small integer that the node writes to itself every timestep. It is private scratch space — not shared with other nodes, not a sum of inputs.
+
+**Concrete example (β=2, k=2 → 4-bit address):**
+
+```
+t=0  inputs=[x0=1, x1=0 | m=00]  addr=8   LUT_mem→01(=1)  LUT_spike→0   mem:0→1
+t=1  inputs=[x0=1, x1=1 | m=01]  addr=13  LUT_mem→10(=2)  LUT_spike→0   mem:1→2
+t=2  inputs=[x0=1, x1=0 | m=10]  addr=10  LUT_mem→11(=3)  LUT_spike→0   mem:2→3
+t=3  inputs=[x0=0, x1=0 | m=11]  addr=3   LUT_mem→00(=0)  LUT_spike→1   mem:3→0  ← SPIKE+RESET
+```
+
+Here `LUT_mem` happened to learn "accumulate; spike and reset at 3" — a counter. But it is just a lookup table. Evolution can equally discover:
+
+- **Counter / integrate-and-fire**: membrane increments on active input, resets on spike
+- **Leaky integrator**: membrane grows with input, decays by 1 each step without input
+- **Burst detector**: spikes only when membrane has been elevated for 2+ consecutive steps
+- **Pure relay**: `LUT_mem` always outputs 0 → reduces to baseline 1-bit behaviour
+
+The membrane bits are not the inputs summed. They are whatever β-bit value `LUT_mem[addr]` returns for the current combined input+membrane address. The dynamics — integration, leak, threshold, reset — are not hand-coded anywhere; they emerge entirely from what the evolution writes into the LUT tables.
+
+The β-bit membrane are fed back into the same node's LUT address the next timestep. They are **not** shared between nodes — each node integrates its own private state.
+
+**Internal state:** `(1 + β)` bits per node — 1 spike bit + β membrane bits.  
+**LUT size:** `2^(k+β)` entries × `(1+β)` bits, split into two tables:
+- `LUT_spike`: `2^(k+β) × 1 bit`  
+- `LUT_mem`:   `2^(k+β) × β bits`
+
+**Comparison:**
+
+| | Baseline | Membrane (β bits) |
+|---|---|---|
+| Internal state | 1 bit | 1 + β bits |
+| LUT inputs | k | k + β |
+| LUT entries | 2^k | 2^(k+β) |
+| Temporal memory | 1 timestep (1 bit) | richer — β-bit accumulator |
+| Dynamics | hardcoded Boolean | fully learned |
+| Genome fields | `lut` | `lut` + `lut_mem` |
+
+**Config key:** set `membrane_bits = 4` (or any β > 0) in `config.json`. The genome and network build the correct LUT sizes automatically.
 
 ---
 
@@ -81,9 +184,10 @@ Each destination LUT has exactly `k` input ports (0 to k-1). If a port has no in
 ### Genome Representation
 
 A genome contains:
-- **`nodes`**: `Dict[node_id → NodeGene]` — type, enabled flag, LUT bits, optional class label (for O nodes)
+- **`nodes`**: `Dict[node_id → NodeGene]` — type, enabled flag, `lut` (spike table), `lut_mem` (membrane table, `None` in baseline), optional class label (for O nodes)
 - **`connections`**: `Dict[innovation_number → ConnectionGene]` — src, dst, dst_port, enabled flag
 - **`k`**: the fixed LUT arity shared by all nodes in this genome
+- **`membrane_bits`** (`β`): 0 for baseline, >0 for membrane variant — controls LUT size and whether `lut_mem` is present
 - **`output_ids`**: ordered list of O node IDs (position = class index)
 
 The **innovation number** on each connection is a global counter assigned the first time a particular `(src, dst, port)` triple appears in the population. It serves as a historical marker for NEAT crossover alignment.
@@ -173,7 +277,8 @@ Each child undergoes the following mutations independently:
 
 | Mutation | Trigger |
 |---|---|
-| **LUT bit flip** | Each bit in each node's LUT flips independently with probability `lut_bit_rate / 2^k` |
+| **LUT_spike bit flip** | Each bit in each node's `lut` flips independently with probability `lut_bit_rate / 2^(k+β)` |
+| **LUT_mem bit flip** | When `membrane_bits > 0`: each individual bit within each `lut_mem` integer entry is flipped with the same per-bit probability |
 | **Add connection** | With probability `p_add_connection` |
 | **Add node** | With probability `p_add_node` |
 | **Toggle connection** | With probability `p_toggle_connection` |
