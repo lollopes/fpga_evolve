@@ -55,20 +55,16 @@ def _evaluate(model: BP_MLP, X: torch.Tensor, y: torch.Tensor,
     return correct / max(1, n), ce_sum / max(1, n)
 
 
-def run_experiment(config: dict, device: torch.device, exp_dir: Path,
-                   on_epoch=None) -> dict:
+def _run_single(config: dict, seed: int, device: torch.device, out_dir: Path,
+                on_epoch=None) -> dict:
+    """Run one training with a fixed seed, save results to out_dir."""
     task      = config["task"]
     ds_kw     = config["dataset"]
     tr_kw     = config["training"]
     snn_kw    = config["snn_params"]
     model_kw  = config["model"]
 
-    torch.manual_seed(tr_kw["seed"])
-
-    print(f"\n{'='*60}")
-    print(f"  TASK : {task}  (SNN baseline)")
-    print(f"  DIR  : {exp_dir}")
-    print(f"{'='*60}")
+    torch.manual_seed(seed)
 
     X_train, y_train, X_val, y_val, X_test, y_test = load_shd_train_val_test(
         data_root=DATA_ROOT,
@@ -77,7 +73,8 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path,
         n_train_per_class=ds_kw.get("n_train_per_class"),
         n_val_per_class=ds_kw.get("n_val_per_class"),
         n_test_per_class=ds_kw.get("n_test_per_class"),
-        seed=tr_kw["seed"],
+        n_channels=ds_kw.get("n_channels"),
+        seed=seed,
         device=torch.device("cpu"),
     )
     print(f"  train={tuple(X_train.shape)}  val={tuple(X_val.shape)}  test={tuple(X_test.shape)}")
@@ -109,13 +106,13 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path,
         correct    = 0
         n_seen     = 0
 
-        for i in range(0, N_train - batch_size + 1, batch_size):   # drop last incomplete
+        for i in range(0, N_train - batch_size + 1, batch_size):
             idx = perm[i:i + batch_size]
-            xb  = X_train[idx].float().to(device)   # [B, T, F]
+            xb  = X_train[idx].float().to(device)
             yb  = y_train[idx].to(device)
 
             optimizer.zero_grad()
-            logits = _forward_sequence(model, xb, device)   # [B, n_outputs]
+            logits = _forward_sequence(model, xb, device)
             loss   = F.cross_entropy(logits, yb)
             loss.backward()
             optimizer.step()
@@ -148,7 +145,6 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path,
         print(f"epoch {epoch:4d} | train={train_acc:.1%}  val={val_acc:.1%}  "
               f"loss={train_loss:.4f}  {rec['elapsed_s']:.0f}s")
 
-    # Restore best checkpoint and evaluate on test
     if best_state is not None:
         model.load_state_dict(best_state)
 
@@ -161,6 +157,7 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path,
 
     result = dict(
         task=task,
+        seed=seed,
         train_acc=train_acc_final,
         val_acc=val_acc_final,
         test_acc=test_acc,
@@ -169,7 +166,6 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path,
         config=config,
     )
 
-    out_dir = exp_dir / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(out_dir / "result.json", "w") as f:
         json.dump(result, f, indent=2)
@@ -177,3 +173,59 @@ def run_experiment(config: dict, device: torch.device, exp_dir: Path,
     print(f"  saved → {out_dir}")
 
     return result
+
+
+def run_experiment(config: dict, device: torch.device, exp_dir: Path,
+                   on_epoch=None) -> dict:
+    import statistics
+    import numpy as np
+
+    task      = config["task"]
+    tr_kw     = config["training"]
+    n_seeds   = tr_kw.get("n_seeds", 1)
+    master_seed = tr_kw["seed"]
+
+    print(f"\n{'='*60}")
+    print(f"  TASK : {task}  (SNN baseline)")
+    print(f"  DIR  : {exp_dir}")
+    print(f"  SEEDS: {n_seeds}")
+    print(f"{'='*60}")
+
+    if n_seeds == 1:
+        return _run_single(config, master_seed, device,
+                           exp_dir / "results", on_epoch)
+
+    rng = np.random.default_rng(master_seed)
+    seeds = rng.integers(0, 2**31, size=n_seeds).tolist()
+
+    all_results = []
+    for i, seed in enumerate(seeds):
+        print(f"\n--- seed {seed}  ({i+1}/{n_seeds}) ---")
+        result = _run_single(config, seed, device,
+                             exp_dir / "results" / f"seed_{seed}", on_epoch)
+        all_results.append(result)
+
+    train_accs = [r["train_acc"] for r in all_results]
+    val_accs   = [r["val_acc"]   for r in all_results]
+    test_accs  = [r["test_acc"]  for r in all_results]
+
+    summary = dict(
+        task=task,
+        seeds=[r["seed"] for r in all_results],
+        train_acc_mean=statistics.mean(train_accs),
+        train_acc_std=statistics.stdev(train_accs) if len(train_accs) > 1 else 0.0,
+        val_acc_mean=statistics.mean(val_accs),
+        val_acc_std=statistics.stdev(val_accs) if len(val_accs) > 1 else 0.0,
+        test_acc_mean=statistics.mean(test_accs),
+        test_acc_std=statistics.stdev(test_accs) if len(test_accs) > 1 else 0.0,
+        config=config,
+    )
+
+    summary_path = exp_dir / "results" / "summary.json"
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"\n  summary saved → {summary_path}")
+    print(f"  test  {summary['test_acc_mean']:.1%} ± {summary['test_acc_std']:.1%}")
+    print(f"  val   {summary['val_acc_mean']:.1%} ± {summary['val_acc_std']:.1%}")
+    return summary

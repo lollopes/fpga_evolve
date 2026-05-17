@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, List, Tuple, Optional
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -19,14 +20,18 @@ def _lut_eval(inputs: torch.Tensor, lut: List[int]) -> torch.Tensor:
 
 class EIONetwork:
     """
-    Runtime interpreter for a Typed E/I/O Boolean NEAT genome.
+    Runtime interpreter for a H/O LIF Boolean NEAT genome.
 
-    Update rule (synchronous, every node every timestep):
-      data_inputs[port] = x_t[src]         (if src is an input node)
-                        = state[t-1][src]   (if src is an active node)
-      raw        = LUT(data_inputs)
-      inhibition = OR(state[t-1][s] for all inhibitory sources s)
-      state[t]   = raw & ~inhibition
+    H nodes (hidden): LIF spike-register units with membrane_bits membrane.
+    O nodes (output): pure leaky integrators with output_membrane_bits membrane;
+                      final membrane value is the class logit.
+
+    Update rule per timestep (synchronous — all nodes read t-1 state):
+      data_inputs[port] = x_t[src]            (if src is an input node)
+                        = h_state[t-1][src]   (if src is an H node)
+      h_state[t]     = LUT_spike_h[addr_h]
+      h_membrane[t]  = LUT_mem_h[addr_h]      (when membrane_bits > 0)
+      o_membrane[t]  = LUT_mem_o[addr_o]      (when output_membrane_bits > 0)
     """
 
     def __init__(self, genome: Genome, device: torch.device | None = None):
@@ -36,203 +41,291 @@ class EIONetwork:
         dev = self.device
         k = self.k
 
-        self.active_ids: List[int] = sorted(
+        mb = genome.membrane_bits
+        out_mb = genome.effective_output_mb
+        self.membrane_bits = mb
+        self.output_membrane_bits = out_mb
+
+        # ── H nodes ────────────────────────────────────────────────────
+        self.h_ids: List[int] = sorted(
             nid for nid, node in genome.nodes.items()
-            if node.enabled and node.kind in ("E", "I", "O")
+            if node.enabled and node.kind == "H"
         )
-        N = len(self.active_ids)
-        self.node_index: Dict[int, int] = {nid: i for i, nid in enumerate(self.active_ids)}
+        Nh = len(self.h_ids)
+        self.h_index: Dict[int, int] = {nid: i for i, nid in enumerate(self.h_ids)}
 
-        self.output_ids: List[int] = [oid for oid in genome.output_ids if oid in self.node_index]
-        self.output_index: List[int] = [self.node_index[oid] for oid in self.output_ids]
+        # ── O nodes ────────────────────────────────────────────────────
+        self.o_ids: List[int] = [
+            oid for oid in genome.output_ids
+            if oid in genome.nodes and genome.nodes[oid].enabled
+        ]
+        No = len(self.o_ids)
+        self.o_index: Dict[int, int] = {nid: i for i, nid in enumerate(self.o_ids)}
 
-        # Build incoming connection dicts.
-        # incoming_data:  dst → {port: (src_id, is_input)}
-        # incoming_inhibitory: dst → [src_id, ...]
-        self.incoming_data: Dict[int, Dict[int, Tuple[int, bool]]] = {nid: {} for nid in self.active_ids}
-        self.incoming_inhibitory: Dict[int, List[int]] = {nid: [] for nid in self.active_ids}
+        # ── Gather plans ───────────────────────────────────────────────
+        # For each node collect port → (src_id, is_input_node).
+        # Dict assignment means last connection per port wins (matches repair_duplicate_slots).
+        h_incoming: Dict[int, Dict[int, Tuple[int, bool]]] = {nid: {} for nid in self.h_ids}
+        o_incoming: Dict[int, Dict[int, Tuple[int, bool]]] = {nid: {} for nid in self.o_ids}
 
         for c in genome.connections.values():
-            if not c.enabled:
-                continue
-            if c.dst not in self.node_index:
+            if not c.enabled or not (0 <= c.dst_port < k):
                 continue
             src_node = genome.nodes.get(c.src)
             if src_node is None or not src_node.enabled:
                 continue
-            if c.dst_port < 0:
-                if c.src in self.node_index:
-                    self.incoming_inhibitory[c.dst].append(c.src)
-            else:
-                if c.dst_port < k:
-                    is_input = src_node.kind == "input"
-                    if is_input or c.src in self.node_index:
-                        self.incoming_data[c.dst][c.dst_port] = (c.src, is_input)
+            is_input = src_node.kind == "input"
+            if c.dst in self.h_index:
+                # H dst: accepts input→H and H→H
+                if is_input or c.src in self.h_index:
+                    h_incoming[c.dst][c.dst_port] = (c.src, is_input)
+            elif c.dst in self.o_index:
+                # O dst: H→O only (no direct input→O)
+                if c.src in self.h_index:
+                    o_incoming[c.dst][c.dst_port] = (c.src, False)
 
-        # ------------------------------------------------------------------
-        # Precompute vectorised gather plan
-        # ------------------------------------------------------------------
-        inp_dst_n: List[int] = []
-        inp_dst_p: List[int] = []
-        inp_src_f: List[int] = []
-        node_dst_n: List[int] = []
-        node_dst_p: List[int] = []
-        node_src_n: List[int] = []
-        inh_dst_n: List[int] = []
-        inh_src_n: List[int] = []
-
-        for local_idx, nid in enumerate(self.active_ids):
-            for port, (src_id, is_input) in self.incoming_data[nid].items():
-                if is_input:
-                    inp_dst_n.append(local_idx)
-                    inp_dst_p.append(port)
-                    inp_src_f.append(src_id)
+        # H gather tensors
+        h_inp_n: List[int] = []
+        h_inp_p: List[int] = []
+        h_inp_f: List[int] = []
+        h_node_n: List[int] = []
+        h_node_p: List[int] = []
+        h_node_s: List[int] = []
+        for local_idx, nid in enumerate(self.h_ids):
+            for port, (src_id, is_inp) in h_incoming[nid].items():
+                if is_inp:
+                    h_inp_n.append(local_idx)
+                    h_inp_p.append(port)
+                    h_inp_f.append(src_id)
                 else:
-                    node_dst_n.append(local_idx)
-                    node_dst_p.append(port)
-                    node_src_n.append(self.node_index[src_id])
-            for inh_src in self.incoming_inhibitory[nid]:
-                inh_dst_n.append(local_idx)
-                inh_src_n.append(self.node_index[inh_src])
+                    h_node_n.append(local_idx)
+                    h_node_p.append(port)
+                    h_node_s.append(self.h_index[src_id])
 
-        if inp_dst_n:
-            self._inp_n = torch.tensor(inp_dst_n, dtype=torch.long, device=dev)
-            self._inp_p = torch.tensor(inp_dst_p, dtype=torch.long, device=dev)
-            self._inp_f = torch.tensor(inp_src_f, dtype=torch.long, device=dev)
+        if h_inp_n:
+            self._h_inp_n = torch.tensor(h_inp_n, dtype=torch.long, device=dev)
+            self._h_inp_p = torch.tensor(h_inp_p, dtype=torch.long, device=dev)
+            self._h_inp_f = torch.tensor(h_inp_f, dtype=torch.long, device=dev)
         else:
-            self._inp_n = self._inp_p = self._inp_f = None
+            self._h_inp_n = self._h_inp_p = self._h_inp_f = None
 
-        if node_dst_n:
-            self._node_n = torch.tensor(node_dst_n, dtype=torch.long, device=dev)
-            self._node_p = torch.tensor(node_dst_p, dtype=torch.long, device=dev)
-            self._node_s = torch.tensor(node_src_n, dtype=torch.long, device=dev)
+        if h_node_n:
+            self._h_node_n = torch.tensor(h_node_n, dtype=torch.long, device=dev)
+            self._h_node_p = torch.tensor(h_node_p, dtype=torch.long, device=dev)
+            self._h_node_s = torch.tensor(h_node_s, dtype=torch.long, device=dev)
         else:
-            self._node_n = self._node_p = self._node_s = None
+            self._h_node_n = self._h_node_p = self._h_node_s = None
 
-        if inh_dst_n:
-            self._inh_n = torch.tensor(inh_dst_n, dtype=torch.long, device=dev)
-            self._inh_s = torch.tensor(inh_src_n, dtype=torch.long, device=dev)
+        # O gather tensors
+        o_inp_n: List[int] = []
+        o_inp_p: List[int] = []
+        o_inp_f: List[int] = []
+        o_node_n: List[int] = []
+        o_node_p: List[int] = []
+        o_node_s: List[int] = []
+        for local_idx, nid in enumerate(self.o_ids):
+            for port, (src_id, is_inp) in o_incoming[nid].items():
+                if is_inp:
+                    o_inp_n.append(local_idx)
+                    o_inp_p.append(port)
+                    o_inp_f.append(src_id)
+                else:
+                    o_node_n.append(local_idx)
+                    o_node_p.append(port)
+                    o_node_s.append(self.h_index[src_id])
+
+        if o_inp_n:
+            self._o_inp_n = torch.tensor(o_inp_n, dtype=torch.long, device=dev)
+            self._o_inp_p = torch.tensor(o_inp_p, dtype=torch.long, device=dev)
+            self._o_inp_f = torch.tensor(o_inp_f, dtype=torch.long, device=dev)
         else:
-            self._inh_n = self._inh_s = None
+            self._o_inp_n = self._o_inp_p = self._o_inp_f = None
 
-        self._has_inhibition = self._inh_n is not None
+        if o_node_n:
+            self._o_node_n = torch.tensor(o_node_n, dtype=torch.long, device=dev)
+            self._o_node_p = torch.tensor(o_node_p, dtype=torch.long, device=dev)
+            self._o_node_s = torch.tensor(o_node_s, dtype=torch.long, device=dev)
+        else:
+            self._o_node_n = self._o_node_p = self._o_node_s = None
 
-        # Membrane-bit LIF support
-        self.membrane_bits: int = genome.membrane_bits
-        mb = self.membrane_bits
-        lut_size = 2 ** (k + mb)
+        # ── H LUTs ─────────────────────────────────────────────────────
+        h_lut_size = 2 ** (k + mb)
+        _zeros_h_spike = np.zeros(h_lut_size, dtype=np.uint8)
+        _zeros_h_mem   = np.zeros(h_lut_size, dtype=np.int16)
+        if Nh > 0:
+            self._lut_spike_h = torch.from_numpy(np.stack([
+                genome.nodes[nid].lut[:h_lut_size] if genome.nodes[nid].lut is not None
+                else _zeros_h_spike for nid in self.h_ids
+            ])).to(dtype=torch.bool, device=dev)  # [Nh, 2^(k+mb)]
+            self._lut_mem_h = torch.from_numpy(np.stack([
+                genome.nodes[nid].lut_mem[:h_lut_size] if genome.nodes[nid].lut_mem is not None
+                else _zeros_h_mem for nid in self.h_ids
+            ]).astype(np.int16)).to(device=dev)  # [Nh, 2^(k+mb)]
+        else:
+            self._lut_spike_h = torch.zeros(0, h_lut_size, dtype=torch.bool, device=dev)
+            self._lut_mem_h   = torch.zeros(0, h_lut_size, dtype=torch.int16, device=dev)
 
-        self._lut_spike = torch.tensor(
-            [(genome.nodes[nid].lut or [0] * lut_size)[:lut_size] for nid in self.active_ids],
-            dtype=torch.bool, device=dev,
-        )  # [N, 2^(k+mb)]
+        # ── O LUTs ─────────────────────────────────────────────────────
+        o_lut_size = 2 ** (k + out_mb)
+        if out_mb > 0 and No > 0:
+            _zeros_o_mem = np.zeros(o_lut_size, dtype=np.int16)
+            self._lut_mem_o = torch.from_numpy(np.stack([
+                genome.nodes[nid].lut_mem[:o_lut_size] if genome.nodes[nid].lut_mem is not None
+                else _zeros_o_mem for nid in self.o_ids
+            ]).astype(np.int16)).to(device=dev)  # [No, 2^(k+out_mb)]
+        elif out_mb == 0 and No > 0:
+            # Legacy mode: O nodes use spike LUTs
+            _zeros_o_spike = np.zeros(o_lut_size, dtype=np.uint8)
+            self._lut_spike_o = torch.from_numpy(np.stack([
+                genome.nodes[nid].lut[:o_lut_size] if genome.nodes[nid].lut is not None
+                else _zeros_o_spike for nid in self.o_ids
+            ])).to(dtype=torch.bool, device=dev)  # [No, 2^k]
+        else:
+            if out_mb > 0:
+                self._lut_mem_o   = torch.zeros(0, o_lut_size, dtype=torch.int16, device=dev)
+            else:
+                self._lut_spike_o = torch.zeros(0, o_lut_size, dtype=torch.bool, device=dev)
 
-        if mb > 0:
-            self._lut_mem = torch.tensor(
-                [(genome.nodes[nid].lut_mem or [0] * lut_size)[:lut_size] for nid in self.active_ids],
-                dtype=torch.int16, device=dev,
-            )  # [N, 2^(k+mb)]
-
-        total_inputs = k + mb
-        self._addr_weights = torch.tensor(
-            [1 << (total_inputs - 1 - j) for j in range(total_inputs)],
+        # ── Address weights ─────────────────────────────────────────────
+        h_total = k + mb
+        self._addr_weights_h = torch.tensor(
+            [1 << (h_total - 1 - j) for j in range(h_total)],
             dtype=torch.long, device=dev,
-        )  # [k + mb]
+        )  # [k+mb]
 
-        self._n_idx = torch.arange(N, dtype=torch.long, device=dev).unsqueeze(0)
-        self._out_t = torch.tensor(self.output_index, dtype=torch.long, device=dev)
+        o_total = k + out_mb
+        self._addr_weights_o = torch.tensor(
+            [1 << (o_total - 1 - j) for j in range(o_total)],
+            dtype=torch.long, device=dev,
+        )  # [k+out_mb]
 
-        # Precomputed bit-shift vector for membrane unpacking [mb]
+        self._nh_idx = torch.arange(Nh, dtype=torch.long, device=dev).unsqueeze(0)
+        self._no_idx = torch.arange(No, dtype=torch.long, device=dev).unsqueeze(0)
+
+        # Membrane bit-shifts for unpacking
         if mb > 0:
-            self._mem_shifts = torch.arange(mb, dtype=torch.int16, device=dev)
+            self._mem_shifts_h = torch.arange(mb, dtype=torch.int16, device=dev)
+        if out_mb > 0:
+            self._mem_shifts_o = torch.arange(out_mb, dtype=torch.int16, device=dev)
 
+    # ------------------------------------------------------------------
+    # Forward steps
+    # ------------------------------------------------------------------
+
+    def _step_h(
+        self,
+        x_t: torch.Tensor,
+        prev_h_state: torch.Tensor,
+        B: int,
+        Nh: int,
+        prev_h_membrane: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """One timestep for H nodes."""
+        k = self.k
+        mb = self.membrane_bits
+        total = k + mb
+        data_in = torch.zeros(B, Nh, total, dtype=torch.bool, device=self.device)
+
+        if self._h_inp_n is not None:
+            data_in[:, self._h_inp_n, self._h_inp_p] = x_t[:, self._h_inp_f]
+        if self._h_node_n is not None:
+            data_in[:, self._h_node_n, self._h_node_p] = prev_h_state[:, self._h_node_s]
+        if mb > 0 and prev_h_membrane is not None:
+            data_in[:, :, k:] = ((prev_h_membrane.unsqueeze(-1) >> self._mem_shifts_h) & 1).bool()
+
+        addr = torch.einsum("bnj,j->bn", data_in.to(torch.long), self._addr_weights_h)
+        n_idx = self._nh_idx.expand(B, -1)
+        new_state = self._lut_spike_h[n_idx, addr]  # [B, Nh] bool
+
+        new_membrane: Optional[torch.Tensor] = None
+        if mb > 0:
+            new_membrane = self._lut_mem_h[n_idx, addr]  # [B, Nh] int16
+
+        return new_state, new_membrane
+
+    def _step_o(
+        self,
+        x_t: torch.Tensor,
+        prev_h_state: torch.Tensor,
+        B: int,
+        No: int,
+        prev_o_membrane: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """One timestep for O nodes.
+
+        Returns new O membrane (int16) when output_membrane_bits > 0,
+        or new O spike state (bool) in legacy mode.
+        """
+        k = self.k
+        out_mb = self.output_membrane_bits
+        total = k + out_mb
+        data_in = torch.zeros(B, No, total, dtype=torch.bool, device=self.device)
+
+        if self._o_inp_n is not None:
+            data_in[:, self._o_inp_n, self._o_inp_p] = x_t[:, self._o_inp_f]
+        if self._o_node_n is not None:
+            data_in[:, self._o_node_n, self._o_node_p] = prev_h_state[:, self._o_node_s]
+        if out_mb > 0 and prev_o_membrane is not None:
+            data_in[:, :, k:] = ((prev_o_membrane.unsqueeze(-1) >> self._mem_shifts_o) & 1).bool()
+
+        addr = torch.einsum("bnj,j->bn", data_in.to(torch.long), self._addr_weights_o)
+        n_idx = self._no_idx.expand(B, -1)
+
+        if out_mb > 0:
+            return self._lut_mem_o[n_idx, addr]   # [B, No] int16
+        else:
+            return self._lut_spike_o[n_idx, addr]  # [B, No] bool
 
     # ------------------------------------------------------------------
     # Forward pass
     # ------------------------------------------------------------------
-
-    def _step(
-        self,
-        x_t: torch.Tensor,
-        prev_state: torch.Tensor,
-        B: int,
-        N: int,
-        prev_membrane: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """
-        One timestep: compute state[t] from x_t and state[t-1].
-
-        When membrane_bits > 0, prev_membrane [B, N] int16 is appended as the
-        last mb input bits, and the second return value is the new membrane [B, N] int16.
-        Otherwise the second return value is None.
-        """
-        k = self.k
-        mb = self.membrane_bits
-        total = k + mb
-        data_in = torch.zeros(B, N, total, dtype=torch.bool, device=self.device)
-
-        if self._inp_n is not None:
-            data_in[:, self._inp_n, self._inp_p] = x_t[:, self._inp_f]
-
-        if self._node_n is not None:
-            data_in[:, self._node_n, self._node_p] = prev_state[:, self._node_s]
-
-        if mb > 0 and prev_membrane is not None:
-            # Vectorised: unpack mb bits in one operation instead of a Python loop
-            data_in[:, :, k:] = ((prev_membrane.unsqueeze(-1) >> self._mem_shifts) & 1).bool()
-
-        addr = torch.einsum("bnj,j->bn", data_in.to(torch.long), self._addr_weights)
-        n_idx = self._n_idx.expand(B, -1)
-        raw = self._lut_spike[n_idx, addr]  # [B, N] bool
-
-        if self._has_inhibition:
-            inh_sum = torch.zeros(B, N, dtype=torch.float32, device=self.device)
-            inh_sum.scatter_add_(
-                1,
-                self._inh_n.unsqueeze(0).expand(B, -1),
-                prev_state[:, self._inh_s].float(),
-            )
-            raw = raw & ~(inh_sum > 0)
-
-        new_membrane = None
-        if mb > 0:
-            new_membrane = self._lut_mem[n_idx, addr]  # [B, N] int16
-
-        return raw, new_membrane
 
     def forward_counts(self, X: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
         Run a batch of binary spike sequences through the network.
 
         X       : [B, T, F]  long or bool
-        returns : (spike_counts [B, n_outputs], stats dict)
+        returns : (output_logits [B, n_outputs], stats dict)
         """
         X = X.to(self.device).bool()
         B, T, F = X.shape
-        N = len(self.active_ids)
+        Nh = len(self.h_ids)
+        No = len(self.o_ids)
 
-        if N == 0 or len(self.output_index) == 0:
+        if No == 0:
             return (
                 torch.zeros(B, self.genome.n_outputs, device=self.device),
                 {"silent_frac": 1.0},
             )
 
-        output_counts = torch.zeros(B, len(self.output_index), dtype=torch.float32, device=self.device)
+        mb = self.membrane_bits
+        out_mb = self.output_membrane_bits
 
-        if self.membrane_bits > 0:
-            state    = torch.zeros(B, N, dtype=torch.bool,  device=self.device)
-            membrane = torch.zeros(B, N, dtype=torch.int16, device=self.device)
+        if out_mb > 0:
+            # LIF mode: O membrane = logit
+            h_state = torch.zeros(B, Nh, dtype=torch.bool, device=self.device)
+            h_membrane = torch.zeros(B, Nh, dtype=torch.int16, device=self.device) if mb > 0 else None
+            o_membrane = torch.zeros(B, No, dtype=torch.int16, device=self.device)
             for t in range(T):
-                state, membrane = self._step(X[:, t, :], state, B, N, membrane)
-                output_counts.add_(state[:, self._out_t].float())
+                x_t = X[:, t, :]
+                prev_h_state = h_state
+                h_state, h_membrane = self._step_h(x_t, prev_h_state, B, Nh, h_membrane)
+                o_membrane = self._step_o(x_t, prev_h_state, B, No, o_membrane)
+            output_logits = o_membrane.float()  # [B, No]
         else:
-            state = torch.zeros(B, N, dtype=torch.bool, device=self.device)
+            # Legacy spike-count mode
+            h_state = torch.zeros(B, Nh, dtype=torch.bool, device=self.device)
+            o_counts = torch.zeros(B, No, dtype=torch.float32, device=self.device)
             for t in range(T):
-                state, _ = self._step(X[:, t, :], state, B, N)
-                output_counts.add_(state[:, self._out_t].float())
+                x_t = X[:, t, :]
+                prev_h_state = h_state
+                h_state, _ = self._step_h(x_t, prev_h_state, B, Nh)
+                o_spike = self._step_o(x_t, prev_h_state, B, No)
+                o_counts.add_(o_spike.float())
+            output_logits = o_counts  # [B, No]
 
-        silent_frac = float((output_counts.sum(dim=1) == 0).float().mean().item())
-        return output_counts, {"silent_frac": silent_frac}
+        silent_frac = float((output_logits.sum(dim=1) == 0).float().mean().item())
+        return output_logits, {"silent_frac": silent_frac}
 
     def predict(self, X: torch.Tensor) -> torch.Tensor:
         logits, _ = self.forward_counts(X)
@@ -251,6 +344,7 @@ def evaluate_genome(
     y: torch.Tensor,
     device: torch.device | None = None,
     batch_size: int = 64,
+    complexity_coef: float = 0.0,
 ) -> Tuple[float, Dict[str, float]]:
     """Fitness = -mean CE loss."""
     dev = device or torch.device("cpu")
@@ -260,6 +354,8 @@ def evaluate_genome(
     correct = 0
     silent_sum = 0.0
     ce_sum = 0.0
+
+    out_mb = genome.effective_output_mb
 
     for start in range(0, n, batch_size):
         xb = X[start:start + batch_size].to(dev)
@@ -271,26 +367,33 @@ def evaluate_genome(
         silent = logits.sum(dim=1) == 0
         correct += int(((pred == yb) & ~silent).sum().detach().cpu())
         silent_sum += stats["silent_frac"] * b
-        ce_sum += F.cross_entropy(logits, yb).item() * b
+        # Normalise logits before CE.
+        # O nodes are pure accumulators: v_final ≈ I_avg × T, so dividing by T
+        # gives the mean weighted input rate per timestep — a well-scaled value
+        # regardless of output_membrane_bits.  (Normalising by max_v = 2^out_mb-1
+        # was wrong: actual values are << max_v, making all normalised logits ≈ 0
+        # and killing the CE signal.)
+        T_val = xb.shape[1]
+        ce_sum += F.cross_entropy(logits / T_val, yb).item() * b
 
     acc = correct / max(1, n)
     silent_frac = silent_sum / max(1, n)
     mean_ce = ce_sum / max(1, n)
     fitness = -mean_ce
 
-    enabled_e = sum(1 for nd in genome.nodes.values() if nd.kind == "E" and nd.enabled)
-    enabled_i = sum(1 for nd in genome.nodes.values() if nd.kind == "I" and nd.enabled)
+    enabled_h    = sum(1 for nd in genome.nodes.values() if nd.kind == "H" and nd.enabled)
     enabled_data = sum(1 for c in genome.connections.values() if c.enabled and c.dst_port >= 0)
-    enabled_inh = sum(1 for c in genome.connections.values() if c.enabled and c.dst_port < 0)
+    n_nodes      = enabled_h + genome.n_outputs  # hidden + output
+
+    fitness = -mean_ce - complexity_coef * enabled_h
 
     metrics = {
         "acc": float(acc),
         "fitness": float(fitness),
         "ce": float(mean_ce),
         "silent_frac": float(silent_frac),
-        "enabled_e": float(enabled_e),
-        "enabled_i": float(enabled_i),
+        "enabled_h": float(enabled_h),
         "enabled_data_conns": float(enabled_data),
-        "enabled_inh_conns": float(enabled_inh),
+        "n_nodes": float(n_nodes),
     }
     return float(fitness), metrics

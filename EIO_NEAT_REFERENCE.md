@@ -4,270 +4,236 @@
 
 ## Table of Contents
 
-1. [Node Architecture — The EIO Building Block](#1-node-architecture--the-eio-building-block)
+1. [Node Architecture](#1-node-architecture)
    - [1a. Baseline Node (LUT-Register)](#1a-baseline-node-lut-register)
-   - [1b. Membrane Node (LIF-Equivalent)](#1b-membrane-node-lif-equivalent)
-2. [How NEAT Works](#2-how-neat-works)
-3. [Evolution Parameters](#3-evolution-parameters)
-4. [Global Readout Layer (src/)](#4-global-readout-layer-src)
+   - [1b. Membrane Node (LIF-Compiled LUT)](#1b-membrane-node-lif-compiled-lut)
+2. [Network Topology](#2-network-topology)
+3. [How NEAT Works](#3-how-neat-works)
+4. [Evolution Parameters](#4-evolution-parameters)
+5. [Global Readout Layer (src/)](#5-global-readout-layer-src)
 
 ---
 
-## 1. Node Architecture — The EIO Building Block
+## 1. Node Architecture
 
-Two node variants are supported. Both share the same NEAT topology (E/I/O types, data and inhibitory connections); they differ only in how much internal state each node carries.
+Two node variants are supported, selected by the `membrane_bits` config value.
 
 ---
 
 ### 1a. Baseline Node (LUT-Register)
 
-Every non-input node is a **LUT-register unit** — a synchronous Boolean cell with a single bit of internal state:
+Every non-input node is a **LUT-register unit** — a synchronous Boolean cell with 1 bit of internal state:
 
 1. Collects up to `k` binary data inputs (one per LUT input port)
-2. Optionally receives inhibitory signals from I-type nodes
-3. Evaluates a `k`-input Boolean function stored in a Look-Up Table (LUT)
-4. Suppresses its output if any inhibitory source fired in the previous timestep
-5. Holds the resulting **1-bit** state until the next timestep
+2. Evaluates a `k`-input Boolean function stored in a Look-Up Table (LUT)
+3. Holds the resulting **1-bit** spike state until the next timestep
 
-The LUT stores `2^k` bits — every possible `k`-bit input combination maps to one output bit. Any Boolean function of `k` inputs is representable. Evolution discovers which function is useful by flipping individual bits.
+The LUT stores `2^k` bits — every possible `k`-bit input combination maps to one output bit. Evolution directly flips individual LUT bits.
 
 ```
   k data inputs
   ─────────────
   x[0] ─┐
-  x[1] ─┤─► [ LUT  ]──► raw ──► AND NOT inh ──► ┌───┐
-  ...    │   [2^k×1]                               │ D ├──► state[t]
-  x[k-1]┘                                         └─┬─┘
-                                                     │
-  inhibitory sources                                 └──► (fanout to network)
-  ──────────────────
-  s[0] ─┐
-  s[1] ─┴─► OR ──► inh
+  x[1] ─┤─► [ LUT  ]──► ┌───┐
+  ...    │   [2^k×1]     │ D ├──► state[t]
+  x[k-1]┘               └───┘
 ```
 
-**Update rule at each timestep `t`:**
-
+**Update rule:**
 ```
-data_inputs[p] = x_t[src]          if src is an input node
-               = state[t-1][src]   if src is a hidden/output node
-
-raw        = LUT[ addr(data_inputs) ]
-inhibition = OR( state[t-1][s]  for all incoming I-sources s )
-state[t]   = raw AND NOT inhibition
+addr    = binary_to_int(data_inputs[0..k-1])
+state[t] = LUT[addr]
 ```
 
-All nodes update synchronously. Recurrence is implicit — any node can read the previous state of any other node via a data connection.
-
-**Internal state:** 1 bit per node.  
-**LUT size:** `2^k` entries × 1 bit.
+**Internal state:** 1 bit per node. **LUT size:** `2^k × 1 bit`.
 
 ---
 
-### 1b. Membrane Node (LIF-Equivalent)
+### 1b. Membrane Node (LIF-Compiled LUT)
 
-Enabled by setting `membrane_bits = β > 0` in the config. Each node now carries a **β-bit membrane register** alongside its spike output, making it a fully learned leaky-integrate-and-fire equivalent.
+Enabled by setting `membrane_bits = β > 0` (H nodes) or `output_membrane_bits > 0` (O nodes).
 
-The key insight (from LogicNets): a neuron with X input bits and Y output bits is exactly a `X→Y` truth table. A LIF neuron with `k` spike inputs and a β-bit internal membrane state is therefore a `(k+β) → (1+β)` LUT — learned entirely by evolution, no hand-coded dynamics.
+Each H node carries a **β-bit membrane register** alongside its spike output. The key insight (from LogicNets): a LIF neuron with `k` spike inputs and a β-bit membrane state is a `(k+β) → (1+β)` LUT.
+
+**Crucially, the LUT is not directly evolved.** It is **compiled** deterministically from three evolved parameters + connection weights:
+
+| H node parameter | Range | Role |
+|---|---|---|
+| `threshold` | `[1, 2^β−1]` | membrane value at which node fires |
+| `leak_shift` | `[1, β]` | leak rate: `v -= v >> leak_shift` each step |
+| `reset_mode` | `zero / subtract` | hard reset vs subtract-threshold on spike |
+| `weight` (per connection) | `[w_min, w_max]` | signed integer contribution of each input port |
+
+At compile time, `compile_lif_luts_for_node()` sweeps all `2^(k+β)` address combinations, applies the LIF dynamics, and writes the result into `lut_spike` and `lut_mem`.
 
 ```
   k data inputs   β membrane bits (previous step)
   ─────────────   ──────────────────────────────
   x[0]  ─┐         m[0]  ─┐
   x[1]  ─┤         m[1]  ─┤
-  ...    ├──────── ...    ─┤──► addr  (k+β bits)
+  ...    ─┤──────── ...   ─┤──► addr (k+β bits)
   x[k-1]─┘         m[β-1]─┘      │
-                                  ├──► [ LUT_spike ]──► AND NOT inh ──► ┌───┐
-                                  │    [2^(k+β)×1 ]                      │ D ├──► spike[t]
-                                  │                                      └───┘
-                                  └──► [ LUT_mem   ]──────────────────► ┌───┐
-                                       [2^(k+β)×β ]                     │ D ├──► mem[t]
-                                                                         └─┬─┘
-                                                                           │
-                                                                           └──► (fed back as m next step)
+                                  ├──► [ LUT_spike ]──► ┌───┐
+                                  │    [2^(k+β)×1 ]     │ D ├──► spike[t]
+                                  │                     └───┘
+                                  └──► [ LUT_mem   ]──► ┌───┐
+                                       [2^(k+β)×β ]     │ D ├──► mem[t]
+                                                         └───┘
 ```
 
-**Update rule at each timestep `t`:**
-
+**Update rule:**
 ```
-inputs = [ data_inputs[0..k-1],  mem[t-1][0..β-1] ]   (k+β bits total)
-addr   = binary_to_int( inputs )
-
-raw    = LUT_spike[ addr ]          (1 bit)
-mem[t] = LUT_mem  [ addr ]          (β-bit integer, range 0 … 2^β−1)
-
-inhibition = OR( state[t-1][s]  for all incoming I-sources s )
-state[t]   = raw AND NOT inhibition
+inputs   = [data_inputs[0..k-1], mem[t-1][0..β-1]]   (k+β bits)
+addr     = binary_to_int(inputs)
+spike[t] = LUT_spike[addr]
+mem[t]   = LUT_mem[addr]
 ```
 
-#### How integration actually works
+All nodes update synchronously. Recurrence is implicit — H nodes can read the previous spike state of other H nodes.
 
-The β-bit membrane is a small integer that the node writes to itself every timestep. It is private scratch space — not shared with other nodes, not a sum of inputs.
-
-**Concrete example (β=2, k=2 → 4-bit address):**
-
-```
-t=0  inputs=[x0=1, x1=0 | m=00]  addr=8   LUT_mem→01(=1)  LUT_spike→0   mem:0→1
-t=1  inputs=[x0=1, x1=1 | m=01]  addr=13  LUT_mem→10(=2)  LUT_spike→0   mem:1→2
-t=2  inputs=[x0=1, x1=0 | m=10]  addr=10  LUT_mem→11(=3)  LUT_spike→0   mem:2→3
-t=3  inputs=[x0=0, x1=0 | m=11]  addr=3   LUT_mem→00(=0)  LUT_spike→1   mem:3→0  ← SPIKE+RESET
-```
-
-Here `LUT_mem` happened to learn "accumulate; spike and reset at 3" — a counter. But it is just a lookup table. Evolution can equally discover:
-
-- **Counter / integrate-and-fire**: membrane increments on active input, resets on spike
-- **Leaky integrator**: membrane grows with input, decays by 1 each step without input
-- **Burst detector**: spikes only when membrane has been elevated for 2+ consecutive steps
-- **Pure relay**: `LUT_mem` always outputs 0 → reduces to baseline 1-bit behaviour
-
-The membrane bits are not the inputs summed. They are whatever β-bit value `LUT_mem[addr]` returns for the current combined input+membrane address. The dynamics — integration, leak, threshold, reset — are not hand-coded anywhere; they emerge entirely from what the evolution writes into the LUT tables.
-
-The β-bit membrane are fed back into the same node's LUT address the next timestep. They are **not** shared between nodes — each node integrates its own private state.
-
-**Internal state:** `(1 + β)` bits per node — 1 spike bit + β membrane bits.  
-**LUT size:** `2^(k+β)` entries × `(1+β)` bits, split into two tables:
-- `LUT_spike`: `2^(k+β) × 1 bit`  
-- `LUT_mem`:   `2^(k+β) × β bits`
-
-**Comparison:**
-
-| | Baseline | Membrane (β bits) |
-|---|---|---|
-| Internal state | 1 bit | 1 + β bits |
-| LUT inputs | k | k + β |
-| LUT entries | 2^k | 2^(k+β) |
-| Temporal memory | 1 timestep (1 bit) | richer — β-bit accumulator |
-| Dynamics | hardcoded Boolean | fully learned |
-| Genome fields | `lut` | `lut` + `lut_mem` |
-
-**Config key:** set `membrane_bits = 4` (or any β > 0) in `config.json`. The genome and network build the correct LUT sizes automatically.
+**Internal state:** `(1 + β)` bits per node. **LUT size:** `2^(k+β)` entries, split into two compiled tables.
 
 ---
 
 ### Node Types
 
 #### Input node
-- Passthrough — directly injects the raw spike value from the input feature vector `x_t[f]` into the network at each timestep.
-- Has no LUT, no inhibitory inputs, no own state.
-- There are `input_size` input nodes (one per feature dimension of the encoded event frame).
+Passthrough — injects the raw spike value `x_t[f]` into the network at each timestep. No LUT, no state. There are `input_size` input nodes (one per feature dimension).
 
-#### E — Excitatory node
-- A full LUT-register unit with `k` data input ports.
-- Fires (outputs 1) when `LUT(data_inputs) = 1` AND no inhibitory source is active.
-- Acts as a processing element: can implement feature detectors, coincidence detectors, or any Boolean function.
-- Its output can fan out to any other E, I, or O node via data connections, or be an inhibitory source for other nodes (though an E node connected inhibitorily is not standard — only I nodes are used as inhibitory sources in the mutation logic).
-
-#### I — Inhibitory node
-- Structurally identical to an E node (has a LUT, k data ports, can itself be inhibited).
-- Its outgoing connections are **always inhibitory** (`dst_port = -1`): when it fires, it suppresses all downstream targets via OR-gating.
-- Acts as a gating mechanism — it can learn to silence a downstream node under specific input conditions.
-- When `add_node_mutation` inserts a new I node, it automatically wires its outgoing connection as inhibitory.
+#### H — Hidden node
+- A LIF-compiled LUT-register unit with `k` data input ports.
+- Receives connections from input nodes and other H nodes only.
+- Has three evolved LIF parameters (`threshold`, `leak_shift`, `reset_mode`) plus per-connection integer weights.
+- LUT is recompiled after every mutation to these parameters.
 
 #### O — Output node
-- One per class (fixed at genome initialisation, never added/removed by mutation).
-- Has a LUT and `k` data input ports like E nodes.
-- Spike counts accumulated over all T timesteps form the raw class logits: `logit[c] = Σ_t state_t[O_c]`.
-- Prediction = `argmax(logits)`. A sample is **silent** (wrong by definition) if all output counts are zero.
+- One per class. Fixed at genome initialisation; never added or removed by mutation.
+- **Pure weighted spike counter** — no LIF dynamics, no threshold, no leak, no bias.
+- Receives connections from H nodes only (no direct input→O connections).
+- Has only one evolved attribute per connection: the integer `weight`.
+- The LUT is compiled with `threshold = max_v + 1` (never fires) and `leak_shift = β` (no decay), making it a perfect accumulator.
+- Final membrane value after T timesteps = total weighted input spike count = class logit.
 
 ---
 
-### Connection Types
+### Connection Genes
 
-| `dst_port` | Type | Effect |
+| Field | Type | Description |
 |---|---|---|
-| `≥ 0` | Data connection | Routes a source's output into port `dst_port` of the destination LUT. Only one source per port. |
-| `= -1` | Inhibitory connection | Source (must be an I node) suppresses the destination via OR. Multiple inhibitory sources are OR-reduced. |
+| `src` | node id | source node |
+| `dst` | node id | destination node |
+| `dst_port` | 0..k-1 | which LUT input port to feed |
+| `weight` | int, `[w_min, w_max]` | signed integer weight (used at LUT compile time) |
+| `enabled` | bool | whether this connection is active |
 
-Each destination LUT has exactly `k` input ports (0 to k-1). If a port has no incoming data connection, it reads as 0.
+Each destination node has exactly `k` input ports. If a port has no incoming connection, it contributes 0 current. Only one connection per (dst, dst_port) slot — duplicates are resolved by `repair_duplicate_slots`.
 
 ---
 
 ### Genome Representation
 
 A genome contains:
-- **`nodes`**: `Dict[node_id → NodeGene]` — type, enabled flag, `lut` (spike table), `lut_mem` (membrane table, `None` in baseline), optional class label (for O nodes)
-- **`connections`**: `Dict[innovation_number → ConnectionGene]` — src, dst, dst_port, enabled flag
-- **`k`**: the fixed LUT arity shared by all nodes in this genome
-- **`membrane_bits`** (`β`): 0 for baseline, >0 for membrane variant — controls LUT size and whether `lut_mem` is present
+- **`nodes`**: `Dict[node_id → NodeGene]` — kind (`input/H/O`), enabled flag, compiled `lut` + `lut_mem` arrays, `lif` params (H nodes only; `None` for O and input nodes)
+- **`connections`**: `Dict[innovation_number → ConnectionGene]` — src, dst, dst_port, weight, enabled
+- **`k`**: fixed LUT arity shared by all nodes
+- **`membrane_bits`** (β): membrane bits for H nodes
+- **`output_membrane_bits`**: membrane bits for O nodes (defaults to `membrane_bits` if 0)
 - **`output_ids`**: ordered list of O node IDs (position = class index)
 
-The **innovation number** on each connection is a global counter assigned the first time a particular `(src, dst, port)` triple appears in the population. It serves as a historical marker for NEAT crossover alignment.
+The **innovation number** is a global counter assigned the first time a `(src, dst, port)` triple appears. It enables crossover alignment across genomes with different topologies.
 
 ---
 
-## 2. How NEAT Works
+## 2. Network Topology
 
-NEAT (NeuroEvolution of Augmenting Topologies) is an evolutionary algorithm that simultaneously optimises both the **weights** (here: LUT bits) and the **topology** (node types and connections) of a neural network. It solves three key problems:
+The architecture enforces a **strict two-layer flow**:
 
-1. **Competing conventions** — two networks solving the same problem may use different topologies. Crossover between them can produce broken offspring. NEAT resolves this with historical markings (innovation numbers).
-2. **Premature topology convergence** — adding new structure initially hurts fitness. NEAT protects innovation by grouping similar genomes into species and competing within species.
-3. **Minimal structure bias** — networks start small and grow only when it helps.
+```
+Input nodes ──→ H nodes (LIF, k ports, temporal processing)
+                    └──→ O nodes (pure counters, k ports, readout)
+```
+
+**Rules enforced in both mutation and runtime:**
+- `input → H`: allowed
+- `H → H`: allowed (recurrent)
+- `H → O`: allowed
+- `input → O`: **forbidden**
+
+This ensures O nodes only receive processed features from H nodes, never raw inputs directly. The separation of concerns is clean: H nodes handle all temporal feature extraction; O nodes are a purely linear weighted readout over H spike trains.
+
+---
+
+## 3. How NEAT Works
+
+NEAT (NeuroEvolution of Augmenting Topologies) simultaneously optimises topology and parameters. It solves three problems:
+
+1. **Competing conventions** — two genomes solving the same problem may use different structures. Crossover between them can produce broken offspring. Innovation numbers align genes across genomes.
+2. **Premature topology convergence** — new structure initially hurts fitness. Speciation protects new innovations by competing within similar groups.
+3. **Minimal structure bias** — networks start small and grow only when useful.
 
 ---
 
 ### Phase 1 — Initialisation
 
 A **minimal template genome** is created:
-- `input_size` input nodes + `n_outputs` output nodes (each O node wired to zero or more random input nodes).
-- If `initial_e_nodes > 0`, a small number of E nodes are added and connected between inputs and outputs.
-- `initial_connections_per_output` random input→output data connections are drawn per output node.
+- `input_size` input nodes + `n_outputs` O nodes.
+- `initial_h_nodes` H nodes are added, each wired with `k` random input→H connections and one H→O connection (round-robin across outputs).
+- No direct input→O connections.
 
-The full population is created by cloning this template and lightly perturbing each clone's LUT bits via `mutate_luts`.
+The population is created by cloning this template and mutating each clone.
 
 ---
 
 ### Phase 2 — Fitness Evaluation
 
-Every genome is converted to an `EIONetwork` and run on the training data (or a random subsample of size `fitness_sample` if set). Fitness is the **negative mean cross-entropy loss**:
+Every genome is run on the training data (or a subsample of size `fitness_sample`). Fitness combines cross-entropy with a complexity penalty:
 
 ```
-fitness = -mean_CE(output_counts, y)
+fitness = -mean_CE(logits / T, y) - complexity_coef × n_active_H
 ```
 
-where `output_counts[b, c]` is the spike count of output node `c` over all T timesteps for sample `b`. Cross-entropy is applied directly to raw spike counts (treating them as logits, with softmax applied internally). Higher fitness = lower CE = better discrimination.
+- `logits[b, c]` = final O node membrane value for class `c`, sample `b` (total weighted spike count over T steps)
+- Dividing by `T` normalises to mean weighted input rate per step before softmax
+- `n_active_H` = number of enabled H nodes
+- `complexity_coef` penalises network growth — each additional H node must earn its place by improving CE more than the penalty cost
 
-Silent samples (all output counts zero) contribute `log(n_classes)` to CE — a "maximally uncertain" penalty that is weaker than a confident wrong prediction, which correctly reflects that a silent network is bad but not as bad as a confident wrong one.
+This directly maps to the FPGA objective: fewer H nodes = fewer LUT registers on chip.
 
 ---
 
 ### Phase 3 — Speciation
 
-Genomes are grouped into **species** so that structurally similar individuals compete against each other, protecting innovation from being immediately discarded.
-
-Two genomes `a` and `b` are in the same species if their **genome distance** is below `compatibility_threshold`:
+Genomes are grouped into species based on genome distance:
 
 ```
 d(a, b) = c_disjoint × (|innovations(a) Δ innovations(b)| / max(|a|, |b|))
-        + c_lut      × mean_LUT_Hamming(shared_nodes)
-        + c_type     × mean_type_mismatch(shared_E/I_nodes)
+        + c_lut      × mean_LIF_distance(shared_H_nodes)
 ```
 
-- **Disjoint term**: fraction of connection genes not shared between the two genomes (structural divergence).
-- **LUT Hamming term**: average fraction of LUT bits that differ across shared nodes (functional divergence).
-- **Type term**: fraction of shared hidden nodes where one is E and the other is I (role divergence).
+- **Disjoint term**: fraction of connection genes not shared (structural divergence)
+- **LIF distance term**: normalised distance between `threshold`, `leak_shift`, `reset_mode`, and connection weights across shared nodes
 
-Each genome is compared to the representative of each existing species in order. If no species is close enough, a new one is formed.
+Each genome is compared to the representative of each existing species. If none is close enough, a new species is formed.
 
 ---
 
 ### Phase 4 — Reproduction
 
-**Species fitness and quotas:**
+**Species quotas:** each species receives offspring proportional to its mean adjusted fitness. Stale species (`max_stale` generations without improvement) are killed, except the global champion species.
 
-Each species receives a quota of offspring proportional to its mean adjusted fitness. Stale species (no improvement in `max_stale` generations) are killed, except for the current global champion species which is always kept alive.
+**Elite preservation:** top `elite_per_species` genomes from species with ≥ `elite_min_size` members are copied unchanged.
 
-**Elite preservation:**
-
-The top `elite_per_species` genomes from each species with at least `elite_min_size` members are copied unchanged into the next generation.
-
-**Child production (per species, filling its quota):**
-
-1. Select parent `p1` via **tournament selection** (pick `tournament_k` random members, keep the best).
-2. With probability `p_crossover` and if the species has more than one member, select a second parent `p2` the same way and perform **crossover**. Otherwise clone `p1`.
-3. Apply **mutation** to the child.
+**Child production:**
+1. Select parent `p1` via tournament selection (`tournament_k` competitors).
+2. With probability `p_crossover`, select `p2` and perform crossover. Otherwise clone `p1`.
+3. Mutate the child.
 
 **Crossover:**
-- For each innovation number in the union of both parents' connections, if it exists in both parents a gene is chosen randomly from either parent (with 75% chance of being disabled if either parent has it disabled). Genes only in the fitter parent are inherited; genes only in the less fit parent are discarded.
-- Node genes for all referenced nodes are inherited, with LUT bits mixed bit-by-bit from whichever parent each node came from.
+- Connections in both parents: gene chosen randomly from either (75% chance disabled if either parent has it disabled)
+- Connections only in the fitter parent: inherited
+- Connections only in the weaker parent: discarded
+- H node LIF params mixed field-by-field (`threshold`, `leak_shift`, `reset_mode` each independently chosen from one parent)
+- LUT tables are recompiled after crossover — never mixed directly
 
 ---
 
@@ -275,39 +241,36 @@ The top `elite_per_species` genomes from each species with at least `elite_min_s
 
 Each child undergoes the following mutations independently:
 
-| Mutation | Trigger |
-|---|---|
-| **LUT_spike bit flip** | Each bit in each node's `lut` flips independently with probability `lut_bit_rate / 2^(k+β)` |
-| **LUT_mem bit flip** | When `membrane_bits > 0`: each individual bit within each `lut_mem` integer entry is flipped with the same per-bit probability |
-| **Add connection** | With probability `p_add_connection` |
-| **Add node** | With probability `p_add_node` |
-| **Toggle connection** | With probability `p_toggle_connection` |
-| **Flip node type (E↔I)** | Each hidden node independently with probability `p_mutate_node_type` |
+| Mutation | Trigger | Effect |
+|---|---|---|
+| **LIF param perturbation** | Each H node param with prob `p_mutate_lif_param` | `threshold`, `leak_shift` ± 1; `reset_mode` flip with prob `p_mutate_lif_param × 0.2` |
+| **Connection weight perturbation** | Each enabled connection with prob `p_mutate_conn_weight` | weight ± 1, clamped to `[weight_min, weight_max]` |
+| **Add connection** | With prob `p_add_connection` | Picks a valid (src, dst, free_port) respecting topology rules; wires a new connection |
+| **Add node** | With prob `p_add_node` | Splits an existing H→H or input→H connection, inserts a new H node with random LIF params |
+| **Toggle connection** | With prob `p_toggle_connection` | Enables or disables a random connection |
 
-**Add connection:** picks a random source (any enabled node, optionally including O nodes if `allow_output_feedback`) and a random target (any active node), finds a free LUT port on the target, and wires them. If the source is an I node, wires an inhibitory connection instead.
+After any structural change, LUTs are **recompiled** from current LIF params + weights.
 
-**Add node (node split):** disables a randomly chosen enabled data connection `src → dst (port p)`, inserts a new hidden node `n` (type E with probability `1 - p_new_node_is_inhibitory`, else I), and wires `src → n (port 0)` and then `n → dst (port p)` (or inhibitory if n is I). This is the classic NEAT split operation — it starts with a pass-through (LUT initialised to OR) so fitness is not immediately hurt.
-
-**Toggle connection:** randomly enables or disables a connection. After toggling, `repair_duplicate_slots` resolves any port conflicts.
+**Add node (split):** disables connection `src → dst (port p)`, creates new H node `n`, wires `src → n (port 0)` and `n → dst (port p)`. The new H node inherits a fresh set of random LIF params.
 
 ---
 
 ### Phase 6 — Val Tracking and Termination
 
-At each generation, the current best genome (by training fitness) is evaluated on the validation set. The genome with the highest **validation accuracy** across all generations is returned as the final result (ties broken by val fitness). This prevents overfitting to the training sample and ensures the returned network generalises.
+Each generation, the best genome by training fitness is evaluated on the validation set. The genome with the highest **validation accuracy** across all generations is returned as the final result (ties broken by val fitness).
 
 ---
 
-## 3. Evolution Parameters
+## 4. Evolution Parameters
 
 ### Population and Time
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `pop_size` | 50 | Total number of genomes per generation. Larger populations explore more of the search space per generation but are proportionally slower to evaluate. |
-| `generations` | 50 | Number of evolutionary cycles. Total compute ∝ `pop_size × generations`. |
-| `seed` | 42 | RNG seed for full reproducibility. |
-| `log_every` | 1 | Print a progress line every N generations. Set to 0 to silence. |
+| `pop_size` | 50 | Genomes per generation. Larger = more exploration, proportionally slower. |
+| `generations` | 50 | Number of evolutionary cycles. |
+| `seed` | 42 | RNG seed for reproducibility. |
+| `log_every` | 1 | Print progress every N generations. |
 
 ---
 
@@ -315,10 +278,11 @@ At each generation, the current best genome (by training fitness) is evaluated o
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `k` | 3 | LUT arity — number of data inputs per node. LUT size = `2^k` bits. Higher k means each node can implement more complex functions but the LUT mutation space grows exponentially. Typical range: 2–6. |
-| `initial_connections_per_output` | 3 | Number of random input→output data connections drawn per O node at initialisation. Determines the starting richness of the input representation seen by each readout node. |
-| `initial_e_nodes` | 0 | Number of E nodes added to the template genome before population creation. Starting with hidden nodes gives evolution a richer initial scaffold; starting with 0 forces structure to grow entirely from scratch (minimal topology bias). |
-| `allow_output_feedback` | False | If True, O nodes can be sources for new connections (recurrent feedback from outputs to hidden/output nodes). Enables more expressive temporal dynamics at the cost of potential instability. Useful for multi-class tasks. |
+| `k` | 3 | LUT arity — data inputs per node. LUT size = `2^(k+β)`. Typical range: 2–6. |
+| `membrane_bits` | 0 | β for H nodes. 0 = baseline 1-bit mode; >0 = LIF-compiled mode. |
+| `output_membrane_bits` | 0 | β for O nodes. 0 = use `membrane_bits`. |
+| `initial_h_nodes` | 0 | H nodes in the template genome. 0 = start from scratch; >0 = richer scaffold. |
+| `allow_output_feedback` | False | If True, O nodes can be sources in new connections. |
 
 ---
 
@@ -326,13 +290,14 @@ At each generation, the current best genome (by training fitness) is evaluated o
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `lut_bit_rate` | 0.02 | Expected fraction of LUT bits flipped per node per generation. Per-bit probability = `lut_bit_rate / 2^k`. This is the primary fine-tuning operator — it changes what Boolean function a node computes without changing topology. Too high → random walk; too low → stagnation. |
-| `p_add_connection` | 0.25 | Probability of attempting to add a new data or inhibitory connection per child. Controls the rate at which genomes grow new wiring. High values increase complexity quickly; low values keep networks sparse. |
-| `p_add_node` | 0.05 | Probability of splitting a data connection by inserting a new hidden node. This is the only way to increase network depth. Lower than `p_add_connection` because topology growth is harder to undo and takes longer to integrate into the population. |
-| `p_toggle_connection` | 0.02 | Probability of enabling or disabling a random connection. Provides a form of structural annealing — a disabled connection retains its innovation number and can be re-enabled, allowing topological features to re-emerge through crossover. |
-| `p_new_node_is_inhibitory` | 0.2 | When a new hidden node is added via `add_node_mutation`, this is the probability it becomes an I node rather than an E node. Low values keep the network mostly excitatory; higher values allow more gating structure to evolve. |
-| `p_mutate_node_type` | 0.01 | Per-node probability of flipping type E↔I. Acts independently of `add_node_mutation`. Allows existing nodes to change role without restructuring connectivity. |
-| `p_crossover` | 0.75 | Probability that a child is produced by crossover between two parents rather than cloning a single parent. High values promote recombination of structural innovations across the species. |
+| `p_mutate_lif_param` | 0.1 | Per-parameter probability of ±1 perturbation for H node LIF params. |
+| `p_mutate_conn_weight` | 0.1 | Per-connection probability of ±1 weight perturbation. |
+| `weight_min` / `weight_max` | -3 / 3 | Integer weight range. |
+| `p_add_connection` | 0.25 | Probability of adding a new connection per child. |
+| `p_add_node` | 0.05 | Probability of splitting a connection and inserting a new H node. |
+| `p_toggle_connection` | 0.02 | Probability of enabling/disabling a random connection. |
+| `p_crossover` | 0.75 | Probability of crossover vs cloning. |
+| `lut_bit_rate` | 0.02 | Used only in legacy baseline mode (`membrane_bits=0`): per-bit LUT flip rate. |
 
 ---
 
@@ -340,12 +305,11 @@ At each generation, the current best genome (by training fitness) is evaluated o
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `compatibility_threshold` | 1.5 | Maximum genome distance for two genomes to be in the same species. Lower values → more, smaller species (finer-grained niching, more protection for novelty). Higher values → fewer, larger species (faster convergence, less diversity). This is the most sensitive speciation hyperparameter. |
-| `c_disjoint` | 1.0 | Weight of the structural divergence term in genome distance. Higher values make connection topology the dominant criterion for speciation. |
-| `c_lut` | 0.4 | Weight of the LUT Hamming distance term. Higher values cause networks with similar topology but different LUT functions to be placed in different species. |
-| `c_type` | 0.2 | Weight of the E/I type mismatch term. Relatively low — type differences alone are rarely enough to drive speciation. |
+| `compatibility_threshold` | 1.5 | Maximum genome distance for same species. Lower = more species, more niching. |
+| `c_disjoint` | 1.0 | Weight of structural divergence in genome distance. |
+| `c_lut` | 0.4 | Weight of LIF/weight content divergence in genome distance. |
 
-**How to tune:** if you see too many species (fragmented population) → raise `compatibility_threshold`. If you see 1–2 species dominating quickly and diversity collapses → lower it.
+**Tuning:** too many species → raise `compatibility_threshold`. Diversity collapses quickly → lower it.
 
 ---
 
@@ -353,10 +317,10 @@ At each generation, the current best genome (by training fitness) is evaluated o
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `elite_per_species` | 1 | Number of top genomes copied unchanged into the next generation per species. Prevents the best solution in a species from being lost through crossover/mutation. |
-| `elite_min_size` | 5 | A species must have at least this many members to qualify for elitism. Prevents tiny species from monopolising the elite quota. |
-| `tournament_k` | 3 | Number of competitors drawn for tournament selection. Higher values → stronger selection pressure (best genome more likely to be chosen). Lower values → more uniform sampling (more exploration). |
-| `max_stale` | 15 | Number of generations a species can go without improving its best fitness before it is killed. The global champion species is immune. Prevents stagnant species from wasting reproductive quota. |
+| `elite_per_species` | 1 | Top genomes copied unchanged per species per generation. |
+| `elite_min_size` | 5 | Minimum species size to qualify for elitism. |
+| `tournament_k` | 3 | Tournament size. Higher = stronger selection pressure. |
+| `max_stale` | 15 | Generations without improvement before species is killed. |
 
 ---
 
@@ -364,12 +328,15 @@ At each generation, the current best genome (by training fitness) is evaluated o
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `batch_size` | 64 | Mini-batch size for `evaluate_genome`. Affects only memory usage and speed, not the fitness value (the full training set is always evaluated). |
-| `fitness_sample` | 0 | If `> 0`, each generation uses a random subsample of this many training samples to compute fitness instead of the full training set. Introduces noise (like stochastic gradient descent) which can help escape local optima, at the cost of a noisier fitness signal. `0` = always use full training set. |
+| `batch_size` | 64 | Mini-batch size for `evaluate_genome`. Affects speed only. |
+| `fitness_sample` | 0 | Random training subsample size per generation. 0 = full training set. |
+| `val_fitness_alpha` | 0.0 | Blends validation fitness: `(1-α)*train + α*val`. 0 = train CE only. |
+| `complexity_coef` | 0.0 | Penalty per active H node: `fitness -= coef * n_active_H`. Prevents bloat and favours minimal FPGA footprint. |
+| `eval_test_each_gen` | False | Evaluate best genome on test set every generation (for monitoring only). |
 
 ---
 
-## 4. Global Readout Layer (`src/`)
+## 5. Global Readout Layer (`src/`)
 
 `src/global_readout.py` implements a **co-evolved Boolean readout** for experiments where the network is structured as a spatial lattice (pyramid, per-column, etc.) rather than a free-topology NEAT graph.
 
@@ -384,12 +351,9 @@ sel : [pop_size, C, k_ro]      — which H×W positions each output reads (long 
 lut : [pop_size, C, 2^k_ro]    — the Boolean function evaluated at those positions (uint8)
 ```
 
-- `sel[b, c, j]` = the feature-map position that input slot `j` of class-c's LUT reads in genome `b`.
-- `lut[b, c, addr]` = the output bit for LUT address `addr` in class-c of genome `b`.
-
 ### Forward Pass (`eval_readout`)
 
-All `pop_size` readout genomes are evaluated on all `N` samples in a **single vectorised GPU pass** — no Python loops over genomes, samples, or timesteps:
+All `pop_size` readout genomes are evaluated on all `N` samples in a **single vectorised GPU pass**:
 
 1. Reshape the lattice trajectory from `[N, B, T, F]` to `[B, N*T, F]` for a single gather call.
 2. Use `readout_sel` to gather the `k_ro` selected feature values per (genome, sample, timestep, class).
@@ -400,12 +364,7 @@ All `pop_size` readout genomes are evaluated on all `N` samples in a **single ve
 
 ### Mutation (`mutate_readout`)
 
-Two independent operators applied each generation:
 - **SEL mutation** (`sel_rate`): each feature-index entry is independently resampled uniformly over `[0, H*W)`.
 - **LUT mutation** (`lut_rate`): each LUT bit is independently flipped.
 
-Both operate as fully vectorised tensor operations — no Python loops over the population.
-
-### Key Advantage
-
-Because the readout is co-evolved and fitness is honest classification accuracy (not a re-scored assignment), there is no circular overfitting. The readout learns to pick the most class-discriminative positions in the feature map, guided directly by CE loss on the actual labels.
+Both are fully vectorised tensor operations.

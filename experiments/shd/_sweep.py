@@ -58,20 +58,26 @@ def run_sweep(base_config: dict, sweep_json: dict, exp_dir: Path,
             overrides["neat.generations"] = sw_gen
             overrides["neat.n_workers"]   = 1  # parallelism is at SLURM job level
 
+            # weight_max is swept; keep weight range symmetric
+            if "neat.weight_max" in overrides:
+                overrides["neat.weight_min"] = -overrides["neat.weight_max"]
+
             cfg     = _apply_overrides(base_config, overrides)
             out_dir = exp_dir / "sweep_runs" / run.id
 
             def on_generation(rec: dict) -> None:
-                wandb.log({
+                log_dict = {
                     "train_acc":   rec["best_train_acc"],
                     "val_acc":     rec["best_val_acc"],
                     "ce":          rec["best_ce"],
                     "n_species":   rec["n_species"],
-                    "E_nodes":     rec["best_hidden_E"],
-                    "I_nodes":     rec["best_hidden_I"],
+                    "H_nodes":     rec["best_hidden_H"],
                     "connections": rec["best_connections"],
                     "silent_frac": rec["best_silent_frac"],
-                }, step=rec["generation"])
+                }
+                if rec.get("best_test_acc") is not None:
+                    log_dict["test_acc"] = rec["best_test_acc"]
+                wandb.log(log_dict, step=rec["generation"])
 
             result = run_experiment(cfg, device, out_dir, on_generation=on_generation)
 

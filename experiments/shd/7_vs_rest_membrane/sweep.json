@@ -2,22 +2,25 @@
     "project": "eio-neat-shd-7vsrest-membrane",
     "method": "bayes",
     "metric": {"name": "val_acc", "goal": "maximize"},
-    "generations": 120,
-    "count": 8,
+    "generations": 150,
+    "count": 50,
     "early_terminate": {
         "type": "hyperband",
-        "min_iter": 30,
+        "min_iter": 40,
         "eta": 2
     },
     "parameters": {
-        "k":                            {"values": [2, 3, 4, 5]},
-        "membrane_bits":                {"values": [1, 2, 4, 8]},
-        "lut_bit_rate":                 {"distribution": "log_uniform_values", "min": 0.005, "max": 0.15},
-        "p_add_node":                   {"distribution": "uniform", "min": 0.05, "max": 0.40},
-        "p_add_connection":             {"distribution": "uniform", "min": 0.10, "max": 0.50},
-        "p_crossover":                  {"distribution": "uniform", "min": 0.20, "max": 0.75},
-        "compatibility_threshold":      {"distribution": "log_uniform_values", "min": 0.5, "max": 4.0},
-        "tournament_k":                 {"values": [3, 5, 6, 8]},
-        "initial_connections_per_output": {"values": [5, 10, 20]}
+        "k":                        {"values": [2, 3, 4, 5]},
+        "membrane_bits":            {"values": [2, 4, 8]},
+        "initial_h_nodes":          {"values": [0, 1, 2, 4]},
+        "p_add_node":               {"distribution": "uniform", "min": 0.05, "max": 0.40},
+        "p_add_connection":         {"distribution": "uniform", "min": 0.10, "max": 0.50},
+        "p_mutate_lif_param":       {"distribution": "uniform", "min": 0.05, "max": 0.30},
+        "p_mutate_conn_weight":     {"distribution": "uniform", "min": 0.05, "max": 0.30},
+        "weight_max":               {"values": [2, 4, 8, 16]},
+        "p_crossover":              {"distribution": "uniform", "min": 0.20, "max": 0.80},
+        "compatibility_threshold":  {"distribution": "log_uniform_values", "min": 0.5, "max": 4.0},
+        "tournament_k":             {"values": [3, 5, 6, 8]},
+        "complexity_coef":          {"distribution": "log_uniform_values", "min": 0.001, "max": 0.02}
     }
 }

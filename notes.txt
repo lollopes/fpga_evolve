@@ -1,0 +1,15 @@
+OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python experiments/shd/7_vs_rest_membrane/run.py
+
+SHD-7_vs_rest - SNN baseline (input pool to 100 channels)
+test  92.7% ± 2.1%
+val   92.0% ± 3.1%
+
+SHD-7_vs_rest - EIO_NEAT_MEM_LUT_COMP baseline (input pool to 100 channels)
+test  80.7% ± 4.9%
+val   82.6% ± 1.2%
+
+  train=81.8%  val=81.5%  test=80.3%  H=27  nodes=29  conn=78  time=1010s
+  train=69.8%  val=83.0%  test=86.2%  H=32  nodes=34  conn=73  time=1022s                                                                                                              
+  train=78.8%  val=82.0%  test=83.0%  H=31  nodes=33  conn=76  time=1049s                                                                                                              
+  train=79.5%  val=84.5%  test=72.9%  H=15  nodes=17  conn=39  time=1049s                                                                                                              
+  train=77.2%  val=82.0%  test=81.2%  H=27  nodes=29  conn=71  time=1030s                                       

@@ -36,13 +36,15 @@ def _evaluate_population(
     dev: torch.device,
     batch_size: int,
     n_workers: int,
+    complexity_coef: float = 0.0,
 ) -> None:
     """Evaluate all genomes, updating .fitness and .metrics in place."""
     global _eval_X, _eval_y, _eval_device_str, _eval_batch_size
 
     if n_workers <= 1:
         for g in population:
-            f, m = evaluate_genome(g, X_fit, y_fit, device=dev, batch_size=batch_size)
+            f, m = evaluate_genome(g, X_fit, y_fit, device=dev, batch_size=batch_size,
+                                   complexity_coef=complexity_coef)
             g.fitness = f
             g.metrics = m
         return
@@ -72,16 +74,20 @@ class NEATConfig:
 
     k: int = 3
     initial_connections_per_output: int = 3
-    initial_e_nodes: int = 0
+    initial_h_nodes: int = 0
 
     lut_bit_rate: float = 0.02
     p_add_connection: float = 0.25
     p_add_node: float = 0.05
     p_toggle_connection: float = 0.02
     p_crossover: float = 0.75
-    p_new_node_is_inhibitory: float = 0.2
-    p_mutate_node_type: float = 0.01
     allow_output_feedback: bool = False
+
+    # LIF-compiled LUT parameters (used when membrane_bits > 0)
+    p_mutate_lif_param: float = 0.1
+    p_mutate_conn_weight: float = 0.1
+    weight_range: int = 3
+    use_lif_compiled_luts: bool = True
 
     compatibility_threshold: float = 1.5
     c_disjoint: float = 1.0
@@ -93,7 +99,13 @@ class NEATConfig:
     max_stale: int = 15
     fitness_sample: int = 0  # 0 = full X_train; >0 = random subsample per generation
 
-    membrane_bits: int = 0       # 0 = legacy; >0 = full (k+mb):(1+mb) LIF-equivalent LUT
+    membrane_bits: int = 0          # H-node membrane bits; 0 = legacy spike-count mode
+    output_membrane_bits: int = 0   # O-node membrane bits; 0 = use membrane_bits
+
+    # Generalisation shaping
+    val_fitness_alpha: float = 0.0  # 0 = train CE only; >0 = (1-α)*train + α*val blended fitness
+    eval_test_each_gen: bool = False # evaluate population[0] on test set every generation
+    complexity_coef: float = 0.0    # penalty per active H node: fitness -= coef * n_active_h
 
     n_workers: int = 1   # parallel genome evaluation workers (Linux fork only)
     seed: int = 42
@@ -122,15 +134,25 @@ def _make_initial_population(
         registry=registry,
         rng=rng,
         initial_connections_per_output=config.initial_connections_per_output,
-        initial_e_nodes=config.initial_e_nodes,
+        initial_h_nodes=config.initial_h_nodes,
         membrane_bits=config.membrane_bits,
+        output_membrane_bits=config.output_membrane_bits,
     )
     pop = []
+    out_mb = config.output_membrane_bits if config.output_membrane_bits > 0 else config.membrane_bits
+    use_lif = (config.membrane_bits > 0 or out_mb > 0) and config.use_lif_compiled_luts
     for _ in range(config.pop_size):
         g = template.clone()
-        g.mutate_luts(rng, config.lut_bit_rate)
+        if use_lif:
+            g.mutate_lif_params(rng, config.p_mutate_lif_param)
+            g.mutate_connection_weights(rng, config.p_mutate_conn_weight,
+                                        -config.weight_range, config.weight_range)
+        else:
+            g.mutate_luts(rng, config.lut_bit_rate)
         if rng.random() < 0.5:
             g.add_connection_mutation(registry, rng, allow_output_feedback=config.allow_output_feedback)
+        if use_lif:
+            g.compile_luts()
         pop.append(g)
     return pop
 
@@ -142,7 +164,7 @@ def _speciate(population: List[Genome], species: List[Species], config: NEATConf
     for g in population:
         placed = False
         for s in species:
-            d = genome_distance(g, s.representative, config.c_disjoint, config.c_lut, config.c_type)
+            d = genome_distance(g, s.representative, config.c_disjoint, config.c_lut, config.c_type, config.weight_range)
             if d < config.compatibility_threshold:
                 s.members.append(g)
                 placed = True
@@ -174,9 +196,11 @@ def _mutate_child(child: Genome, registry: InnovationRegistry, rng: random.Rando
         p_add_connection=config.p_add_connection,
         p_add_node=config.p_add_node,
         p_toggle_connection=config.p_toggle_connection,
-        p_new_node_is_inhibitory=config.p_new_node_is_inhibitory,
-        p_mutate_node_type=config.p_mutate_node_type,
         allow_output_feedback=config.allow_output_feedback,
+        p_mutate_lif_param=config.p_mutate_lif_param,
+        p_mutate_conn_weight=config.p_mutate_conn_weight,
+        weight_min=-config.weight_range,
+        weight_max=config.weight_range,
     )
 
 
@@ -270,6 +294,8 @@ def evolve(
     config: NEATConfig,
     device: torch.device | None = None,
     on_generation=None,
+    X_test: Optional[torch.Tensor] = None,
+    y_test: Optional[torch.Tensor] = None,
 ) -> Tuple[Genome, List[dict], InnovationRegistry]:
     """
     Evolve a Typed E/I/O Boolean NEAT population on the given dataset.
@@ -277,6 +303,13 @@ def evolve(
     X tensors: [N, T, F].
     Returns the best genome (chosen by val accuracy), full generation history,
     and the shared innovation registry.
+
+    If config.val_fitness_alpha > 0, every genome is also evaluated on val each
+    generation and fitness is blended: (1-α)*train_fitness + α*val_fitness.
+    Note: val is then no longer a clean holdout — use test_acc as the primary metric.
+
+    If config.eval_test_each_gen is True, X_test/y_test must be provided and
+    population[0] is evaluated on test every generation (logged in history).
     """
     rng = random.Random(config.seed)
     np.random.seed(config.seed)
@@ -305,8 +338,16 @@ def evolve(
             X_fit, y_fit = X_train, y_train
 
         _evaluate_population(
-            population, X_fit, y_fit, dev, config.batch_size, config.n_workers
+            population, X_fit, y_fit, dev, config.batch_size, config.n_workers,
+            complexity_coef=config.complexity_coef,
         )
+
+        # Optional: blend val fitness into every genome's fitness score
+        if config.val_fitness_alpha > 0:
+            alpha = config.val_fitness_alpha
+            for g in population:
+                vf, _ = evaluate_genome(g, X_val, y_val, device=dev, batch_size=config.batch_size)
+                g.fitness = (1.0 - alpha) * (g.fitness or 0.0) + alpha * vf
 
         population.sort(key=lambda g: g.fitness if g.fitness is not None else -1e9, reverse=True)
         if best_train is None or (population[0].fitness or -1e9) > (best_train.fitness or -1e9):
@@ -314,22 +355,39 @@ def evolve(
 
         species = _speciate(population, species, config)
 
-        val_f, val_m = evaluate_genome(
-            population[0], X_val, y_val,
-            device=dev,
-            batch_size=config.batch_size,
-        )
-        val_acc = float(val_m.get("acc", 0.0))
+        best_gen_val_acc = -math.inf
+        best_gen_val_f = -math.inf
+        best_gen_genome = population[0]
+        for g in population:
+            vf, vm = evaluate_genome(g, X_val, y_val, device=dev, batch_size=config.batch_size)
+            g_val_acc = float(vm.get("acc", 0.0))
+            if g_val_acc > best_gen_val_acc or (
+                math.isclose(g_val_acc, best_gen_val_acc) and vf > best_gen_val_f
+            ):
+                best_gen_val_acc = g_val_acc
+                best_gen_val_f = vf
+                best_gen_genome = g
+        val_acc = best_gen_val_acc
+        val_f = best_gen_val_f
         if (
             best_val is None
             or val_acc > best_val_acc
             or (math.isclose(val_acc, best_val_acc) and val_f > best_val_fitness)
         ):
-            best_val = population[0].clone()
+            best_val = best_gen_genome.clone()
             best_val.fitness = val_f
             best_val.metrics = {**best_val.metrics, "val_acc": val_acc, "val_fitness": float(val_f)}
             best_val_acc = val_acc
             best_val_fitness = val_f
+
+        # Optional: evaluate best_val genome on test set
+        test_acc: Optional[float] = None
+        if config.eval_test_each_gen and X_test is not None and y_test is not None:
+            _, test_m = evaluate_genome(
+                best_gen_genome, X_test, y_test,
+                device=dev, batch_size=config.batch_size,
+            )
+            test_acc = float(test_m.get("acc", 0.0))
 
         m0 = population[0].metrics
         rec = {
@@ -338,11 +396,12 @@ def evolve(
             "best_ce": float(m0.get("ce", 0.0)),
             "best_train_acc": float(m0.get("acc", 0.0)),
             "best_val_acc": val_acc,
+            "best_test_acc": test_acc,
             "mean_fitness": float(np.mean([g.fitness or 0.0 for g in population])),
             "n_species": len(species),
-            "best_connections": int(m0.get("enabled_data_conns", 0) + m0.get("enabled_inh_conns", 0)),
-            "best_hidden_E": int(m0.get("enabled_e", 0)),
-            "best_hidden_I": int(m0.get("enabled_i", 0)),
+            "best_connections": int(m0.get("enabled_data_conns", 0)),
+            "best_hidden_H": int(m0.get("enabled_h", 0)),
+            "best_n_nodes": int(m0.get("n_nodes", 0)),
             "best_silent_frac": float(m0.get("silent_frac", 0.0)),
             "elapsed_s": time.time() - t0,
         }
@@ -351,12 +410,13 @@ def evolve(
             on_generation(rec)
 
         if config.log_every and gen % config.log_every == 0:
+            test_str = f"  test={test_acc:.1%}" if test_acc is not None else ""
             print(
                 f"gen {gen:4d} | "
-                f"train={rec['best_train_acc']:.1%}  val={rec['best_val_acc']:.1%} "
+                f"train={rec['best_train_acc']:.1%}  val={rec['best_val_acc']:.1%}{test_str} "
                 f"ce={rec['best_ce']:.3f} | "
                 f"species={rec['n_species']}  "
-                f"E={rec['best_hidden_E']}  I={rec['best_hidden_I']}  "
+                f"H={rec['best_hidden_H']}  nodes={rec['best_n_nodes']}  "
                 f"conn={rec['best_connections']}  "
                 f"silent={rec['best_silent_frac']:.2f} | "
                 f"{rec['elapsed_s']:.1f}s"

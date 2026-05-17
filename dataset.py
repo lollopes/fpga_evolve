@@ -766,6 +766,23 @@ def load_shd(
     )
 
 
+def _or_pool_channels(X: np.ndarray, n_channels: int) -> np.ndarray:
+    """OR-pool adjacent frequency channels: [N, T, 700] → [N, T, n_channels].
+
+    Groups of ceil(700/n_channels) adjacent channels are collapsed with OR.
+    Any channel that fires within a group produces a 1 in the pooled channel.
+    The last group may be smaller if 700 is not divisible by n_channels.
+    """
+    N, T, F = X.shape
+    group = F / n_channels           # may be non-integer
+    out = np.zeros((N, T, n_channels), dtype=X.dtype)
+    for i in range(n_channels):
+        start = int(round(i * group))
+        end   = int(round((i + 1) * group))
+        out[:, :, i] = X[:, :, start:end].any(axis=-1)
+    return out
+
+
 def load_shd_train_val_test(
     data_root: str = _DEFAULT_SHD_DATA_ROOT,
     task: str = "7_vs_rest",
@@ -773,6 +790,7 @@ def load_shd_train_val_test(
     n_train_per_class: Optional[int] = 200,
     n_val_per_class: Optional[int] = 50,
     n_test_per_class: Optional[int] = None,
+    n_channels: Optional[int] = None,
     seed: int = 42,
     device: Optional[torch.device] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -794,16 +812,21 @@ def load_shd_train_val_test(
     n_val_per_class     : samples per English class from train split for validation
                           (disjoint from training samples)
     n_test_per_class    : samples per English class from test split  (None = all)
+    n_channels          : if set, OR-pool the 700 cochlear channels down to this
+                          many channels before returning.  Adjacent channels are
+                          grouped with OR (a group fires if any channel fires).
+                          None (default) returns all 700 channels unchanged.
+                          Recommended values: 50–100 (see benchmarks in codebase).
     seed                : RNG seed for reproducible subsampling
     device              : torch device for output tensors (default cpu)
 
     Returns
     -------
-    X_train : [N_train, T_train, 700] long
+    X_train : [N_train, T_train, F] long   F=700 or n_channels if set
     y_train : [N_train] long
-    X_val   : [N_val,   T_val,   700] long
+    X_val   : [N_val,   T_val,   F] long
     y_val   : [N_val]   long
-    X_test  : [N_test,  T_test,  700] long
+    X_test  : [N_test,  T_test,  F] long
     y_test  : [N_test]  long
     """
     dev = device or torch.device("cpu")
@@ -811,7 +834,8 @@ def load_shd_train_val_test(
     n_classes_for_task(task)   # validate early
 
     transform = _make_shd_transform(time_window)
-    print(f"Loading SHD English digits [{task}]  time_window={time_window}µs  input=700")
+    f_str = f"{n_channels} (OR-pooled from 700)" if n_channels else "700"
+    print(f"Loading SHD English digits [{task}]  time_window={time_window}µs  input={f_str}")
 
     train_dataset   = tonic.datasets.SHD(save_to=data_root, train=True,  transform=transform)
     train_class_idx = _build_shd_class_index(train_dataset)
@@ -831,6 +855,11 @@ def load_shd_train_val_test(
     X_tr, y_tr = _load_shd_samples(train_dataset, train_chosen)
     X_va, y_va = _load_shd_samples(train_dataset, val_chosen)
     X_te, y_te = _load_shd_samples(test_dataset,  test_chosen)
+
+    if n_channels is not None and n_channels < X_tr.shape[-1]:
+        X_tr = _or_pool_channels(X_tr, n_channels)
+        X_va = _or_pool_channels(X_va, n_channels)
+        X_te = _or_pool_channels(X_te, n_channels)
 
     print(f"  train: {X_tr.shape}  val: {X_va.shape}  test: {X_te.shape}")
 
